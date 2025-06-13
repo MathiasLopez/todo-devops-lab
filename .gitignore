@@ -1,0 +1,40 @@
+# Entorno virtual
+venv/
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Docker
+*.pid
+*.tar
+*.img
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Tests
+htmlcov/
+.tox/
+.pytest_cache/
+coverage.xml
+*.cover
+
+# Terraform (si lo usás luego)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# Otros
+*.db
