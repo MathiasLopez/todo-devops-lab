@@ -25,7 +25,11 @@ docker run --name todo-devops-lab-db \
 ### 2. Create a .env file
 #### 2.1. Create a .env file in the root of the project and add the following:
 ```bash
-DATABASE_URL=postgresql://admin:admin123@localhost:5432/tododb
+DB_USER=admin
+DB_PASS=admin123
+DB_PORT=5432
+DB_HOST=db
+DB_NAME=taskdb
 ```
 ### 3. Set up a virtual environment
 #### 3.1. Create the virtual environment
@@ -51,3 +55,27 @@ uvicorn main:app
 http://localhost:8000/docs
 ```
 
+## How to run the project in docker
+
+### 1. Create a .env file
+#### 1.1. Create a .env file in the root of the project and add the following:
+```bash
+DB_USER=admin
+DB_PASS=admin123
+DB_PORT=5432
+DB_HOST=localhost
+DB_NAME=taskdb
+```
+
+### 2.  Build and start the containers
+#### 2.1. Run the following command to build the Docker images and start the containers:
+```bash
+docker compose up
+
+```
+
+### 3. Test the API
+#### 3.1. Open the browser and go to:
+```bash
+http://localhost:8000/docs
+```
