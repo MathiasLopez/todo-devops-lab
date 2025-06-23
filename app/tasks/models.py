@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from app.entities.task import Priority
@@ -9,6 +10,12 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     pass
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[Priority] = None
+    is_completed: Optional[bool] = None
 
 class TaskResponse(TaskBase):
     id: UUID

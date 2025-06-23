@@ -23,7 +23,7 @@ def get_tasks(db: DbSession):
     return service.get_tasks(db)
 
 @router.put("/{id}", response_model=models.TaskResponse)
-def update_task(db: DbSession, id: UUID, task_to_update: models.TaskCreate):
+def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate):
     return service.update_task(db, id, task_to_update)
 
 @router.put("/{id}/complete", response_model=models.TaskResponse)

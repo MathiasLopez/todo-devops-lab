@@ -8,11 +8,11 @@ End-to-end DevOps learning project using a simple TODO app built with FastAPI. C
 ### 1. Create a PostgreSQL container using Docker
 #### 1.1. Pull the official PostgreSQL image
 
-```bash
+```
 docker pull postgres:latest
 ```
 #### 1.2. Start a new container with the pulled image
-```bash
+```
 docker run --name todo-devops-lab-db \
   -e POSTGRES_USER=admin \
   -e POSTGRES_PASSWORD=admin123 \
@@ -24,7 +24,7 @@ docker run --name todo-devops-lab-db \
 
 ### 2. Create a .env file
 #### 2.1. Create a .env file in the root of the project and add the following:
-```bash
+```
 DB_USER=admin
 DB_PASS=admin123
 DB_PORT=5432
@@ -33,25 +33,25 @@ DB_NAME=taskdb
 ```
 ### 3. Set up a virtual environment
 #### 3.1. Create the virtual environment
-```bash
+```
 python3 -m venv venv
 ```
 #### 3.2. Activate the virtual environment
 - macOS/Linux
-```bash
+```
 source venv/bin/activate
 ```
 ### 4. Install dependencies
-```bash
+```
 pip install -r requirements.txt
 ```
 ### 5. Run the application
-```bash
+```
 uvicorn main:app
 ```
 ### 6. Test the API
 #### 6.1. Open the browser and go to:
-```bash
+```
 http://localhost:8000/docs
 ```
 
@@ -59,7 +59,7 @@ http://localhost:8000/docs
 
 ### 1. Create a .env file
 #### 1.1. Create a .env file in the root of the project and add the following:
-```bash
+```
 DB_USER=admin
 DB_PASS=admin123
 DB_PORT=5432
@@ -69,13 +69,40 @@ DB_NAME=taskdb
 
 ### 2.  Build and start the containers
 #### 2.1. Run the following command to build the Docker images and start the containers:
-```bash
+```
 docker compose up
-
 ```
 
 ### 3. Test the API
 #### 3.1. Open the browser and go to:
-```bash
+```
 http://localhost:8000/docs
+```
+
+## How to run tests
+This project uses pytest for testing.
+
+### 1. Dependencies
+#### 1.1. Before running the tests install the development dependecies:
+```
+pip install -r requirements-dev.txt
+```
+
+### 2. Environment variables
+#### 2.1. The tests require the API_BASE_URL environment variable to be defined. This variable specifies the base URL where the API is running.
+##### 2.1.1. If running the app locally:
+###### Define the variable inside a .env file at the root of the project.
+```
+API_BASE_URL=http://localhost:8000
+```
+
+##### 2.1.2. If running the app locally:
+###### Export the variable manually in your terminal before running the tests:
+```
+export API_BASE_URL=http://localhost:8000
+```
+
+### 3. Run tests:
+```bash
+pytest
 ```
