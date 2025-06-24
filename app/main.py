@@ -1,8 +1,14 @@
 from fastapi import FastAPI
-from .database.core import engine, Base
+from .database.core import engine, Base, wait_for_db
 from .api import register_routers
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    wait_for_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 Base.metadata.create_all(bind=engine)
 

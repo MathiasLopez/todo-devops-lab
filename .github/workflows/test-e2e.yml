@@ -1,0 +1,30 @@
+name: Run E2E tests
+
+on:
+  push:
+    branches: ["dev"]
+
+env:
+  API_BASE_URL: http://localhost:8000
+  DB_USER: admin
+  DB_PASS: admin
+  DB_PORT: 5432
+  DB_HOST: db
+  DB_NAME: taskdb
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run docker compose
+        uses: hoverkraft-tech/compose-action@v2.0.1
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest
