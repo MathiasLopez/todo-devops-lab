@@ -1,0 +1,23 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches: ["test-deploy"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: root
+          key: ${{ secrets.DO_SSH_KEY }}
+          envs: IMAGE_TAG=${{ github.event.inputs.image_tag }}
+          script: |
+            cd /root/tu-repo
+            echo "Directory: $(pwd)"
+            echo "Haciendo git pull..."
+            git pull origin dev
