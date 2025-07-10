@@ -17,7 +17,7 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           envs: IMAGE_TAG=${{ github.event.inputs.image_tag }}
           script: |
-            cd /root/tu-repo
-            echo "Directory: $(pwd)"
-            echo "Haciendo git pull..."
+            cd todo-devops-lab
+
+            echo "Updating local repository..."
             git pull origin dev
