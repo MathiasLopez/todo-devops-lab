@@ -3,6 +3,7 @@ name: Run E2E tests
 on:
   push:
     branches: ["dev"]
+  workflow_call:
 
 env:
   API_BASE_URL: http://localhost:8000

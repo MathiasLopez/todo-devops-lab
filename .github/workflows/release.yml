@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  e2e-tests:
+    name: Run E2E tests
+    uses: ./.github/workflows/test-e2e.yml
+
+  build-image:
+    name: Build and push Docker image
+    needs: e2e-tests
+    uses: ./.github/workflows/deploy-image.yml
+
+  deploy-do:
+    name: Deploy to DigitalOcean
+    needs: build-image
+    uses: ./.github/workflows/deploy-do.yml
+    secrets:
+      DO_HOST: ${{ secrets.DO_HOST }}
+      DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}

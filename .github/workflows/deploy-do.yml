@@ -1,8 +1,12 @@
 name: Deploy to Digital Ocean
 
 on:
-  push:
-    branches: ["test-deploy"]
+  workflow_call:
+    secrets:
+      DO_HOST:
+        required: true
+      DO_SSH_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -20,4 +24,10 @@ jobs:
             cd todo-devops-lab
 
             echo "Updating local repository..."
-            git pull origin dev
+            git pull origin test-deploy
+
+            echo "Pull latest image from GHCR"
+            docker compose -f docker-compose.yml pull
+
+            echo "Restart containers with updated image"
+            docker compose -f docker-compose.yml up -d

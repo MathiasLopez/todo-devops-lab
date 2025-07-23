@@ -1,0 +1,9 @@
+services: 
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+
+  db:
+    restart: "no"
