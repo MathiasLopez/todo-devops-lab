@@ -24,7 +24,7 @@ jobs:
             cd todo-devops-lab
 
             echo "Updating local repository..."
-            git pull origin test-deploy
+            git pull origin main
 
             echo "Pull latest image from GHCR"
             docker compose -f docker-compose.yml pull
