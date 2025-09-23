@@ -9,6 +9,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
     depends_on:
       - db
     volumes:

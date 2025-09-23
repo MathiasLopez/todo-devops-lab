@@ -106,3 +106,14 @@ export API_BASE_URL=http://localhost:8000
 ```bash
 pytest
 ```
+
+## CORS Configuration
+
+The project uses environment variables to define allowed origins.  
+You must configure the `.env` file in the project root with the `ALLOWED_ORIGIN` variable.
+
+### ENV file example `.env`
+
+```
+ALLOWED_ORIGIN=https://kanban.mathiaslopez.tech
+```
