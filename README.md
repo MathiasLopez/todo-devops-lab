@@ -101,6 +101,8 @@ API_BASE_URL=http://localhost:8000
 ###### Export the variable manually in your terminal before running the tests:
 ```
 export API_BASE_URL=http://localhost:8000
+export JWT_SECRET=123e4567-e89b-12d3-a456-426614174000
+export JWT_ALGORITHM=HS256
 ```
 
 ### 3. Run tests:

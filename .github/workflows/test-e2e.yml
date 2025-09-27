@@ -12,6 +12,9 @@ env:
   DB_PORT: 5432
   DB_HOST: db
   DB_NAME: taskdb
+  ALLOWED_ORIGIN: "*"
+  JWT_SECRET: 123e4567-e89b-12d3-a456-426614174000
+  JWT_ALGORITHM: HS256
 
 jobs:
   tests:
@@ -21,8 +24,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run docker compose
-        uses: hoverkraft-tech/compose-action@v2.0.1
+      - name: Build and start services
+        run: |
+          docker compose build
+          docker compose up -d
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
