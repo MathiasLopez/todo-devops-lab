@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from typing import List
 from uuid import UUID
 from ..database.core import DbSession
 from . import models
 from . import service
+from app.auth.dependencies import get_current_user;
 
 router = APIRouter(
     prefix="/tasks",
@@ -11,25 +12,25 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=models.TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(db: DbSession, task: models.TaskCreate):
+def create_task(db: DbSession, task: models.TaskCreate, current_user: dict = Depends(get_current_user)):
     return service.create_task(db, task)
 
 @router.get("/{id}", response_model=models.TaskResponse)
-def get_task(db: DbSession, id: UUID):
+def get_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
     return service.get_task_by_id(db, id)
 
 @router.get("/", response_model=List[models.TaskResponse])
-def get_tasks(db: DbSession):
+def get_tasks(db: DbSession, current_user: dict = Depends(get_current_user)):
     return service.get_tasks(db)
 
 @router.put("/{id}", response_model=models.TaskResponse)
-def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate):
+def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate, current_user: dict = Depends(get_current_user)):
     return service.update_task(db, id, task_to_update)
 
 @router.put("/{id}/complete", response_model=models.TaskResponse)
-def complete_task(db: DbSession, id: UUID):
+def complete_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
     return service.complete_task(db, id)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(db: DbSession, id: UUID):
+def delete_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
     service.delete_task(db, id)

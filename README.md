@@ -46,8 +46,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 ### 5. Run the application
+From the root of the project (the folder containing the app):
 ```
-uvicorn main:app
+uvicorn app.main:app --reload
 ```
 ### 6. Test the API
 #### 6.1. Open the browser and go to:
