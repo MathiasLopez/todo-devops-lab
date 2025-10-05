@@ -4,6 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: "no"
+    networks:
+      - shared-network
 
   db:
     restart: "no"
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    external: true
