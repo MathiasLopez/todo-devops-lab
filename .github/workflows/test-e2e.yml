@@ -29,6 +29,9 @@ jobs:
           docker compose build
           docker compose -f docker-compose.yml up -d
 
+      - name: Running migrations
+        run: docker compose -f docker-compose.yml run --rm api sh -c "/wait-for-it.sh db:5432 -- alembic upgrade head"
+
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 

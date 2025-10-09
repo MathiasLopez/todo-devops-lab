@@ -29,5 +29,8 @@ jobs:
             echo "Pull latest image from GHCR"
             docker compose -f docker-compose.yml pull
 
+            echo "Running migrations"
+            docker compose -f docker-compose.yml run --rm api alembic upgrade head
+
             echo "Restart containers with updated image"
             docker compose -f docker-compose.yml up -d

@@ -4,8 +4,8 @@ from . import models
 from app.entities.task import Task
 from uuid import UUID
 
-def create_task(db: Session, task: models.TaskCreate) -> Task:
-        new_task = Task(**task.model_dump())
+def create_task(db: Session, task: models.TaskCreate, user_id: UUID) -> Task:
+        new_task = Task(**task.model_dump(), created_by = user_id)
         db.add(new_task)
         db.commit()
         db.refresh(new_task)

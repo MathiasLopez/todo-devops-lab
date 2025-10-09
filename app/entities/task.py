@@ -21,3 +21,4 @@ class Task(Base):
     is_completed = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     priority = Column(Enum(Priority), nullable=False, default=Priority.Medium)
+    created_by = Column(UUID(as_uuid=True), nullable=False)

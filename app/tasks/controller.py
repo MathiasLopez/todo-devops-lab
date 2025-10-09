@@ -13,7 +13,7 @@ router = APIRouter(
 
 @router.post("/", response_model=models.TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(db: DbSession, task: models.TaskCreate, current_user: dict = Depends(get_current_user)):
-    return service.create_task(db, task)
+    return service.create_task(db, task, user_id=current_user["id"])
 
 @router.get("/{id}", response_model=models.TaskResponse)
 def get_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
