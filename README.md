@@ -3,7 +3,7 @@
 End-to-end DevOps learning project using a simple TODO app built with FastAPI. Covers CI/CD, containerization, deployment and infrastructure automation.  
 
 ## How to Run the Project Locally
- Follow these steps to set up and run the application from scratch.
+Follow these steps to set up and run the application from scratch.
   
 ### 1. Create a PostgreSQL container using Docker
 #### 1.1. Pull the official PostgreSQL image
@@ -28,7 +28,7 @@ docker run --name todo-devops-lab-db \
 DB_USER=admin
 DB_PASS=admin123
 DB_PORT=5432
-DB_HOST=db
+DB_HOST=localhost
 DB_NAME=taskdb
 ```
 ### 3. Set up a virtual environment
@@ -45,8 +45,15 @@ source venv/bin/activate
 ```
 pip install -r requirements.txt
 ```
-### 5. Run the application
-From the root of the project (the folder containing the app):
+
+### 5. Run migrations
+From the root of the project (the folder containing the app)
+```
+alembic upgrade head
+```
+
+### 6. Run the application
+From the root of the project:
 ```
 uvicorn app.main:app --reload
 ```
@@ -64,18 +71,32 @@ http://localhost:8000/docs
 DB_USER=admin
 DB_PASS=admin123
 DB_PORT=5432
-DB_HOST=localhost
+DB_HOST=db
 DB_NAME=taskdb
 ```
 
-### 2.  Build and start the containers
-#### 2.1. Run the following command to build the Docker images and start the containers:
+### 2. Build the containers
 ```
-docker compose up
+docker compose build
 ```
 
-### 3. Test the API
-#### 3.1. Open the browser and go to:
+### 3. Lift the database container
+```
+docker compose up -d db
+```
+
+### 4. Run migrations
+```
+docker compose -f docker-compose.yml run --rm api alembic upgrade head
+```
+
+### 5.  start api container
+```
+docker compose up -d api
+```
+
+### 6. Test the API
+Open the browser and go to:
 ```
 http://localhost:8000/docs
 ```
