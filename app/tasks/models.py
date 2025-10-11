@@ -9,6 +9,7 @@ class TaskBase(BaseModel):
     priority: Priority = Priority.Medium
 
 class TaskCreate(TaskBase):
+    assigned: Optional[UUID] = None
     pass
 
 class TaskUpdate(BaseModel):
@@ -16,6 +17,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     priority: Optional[Priority] = None
     is_completed: Optional[bool] = None
+    assigned: Optional[UUID] = None
 
 class TaskResponse(TaskBase):
     id: UUID

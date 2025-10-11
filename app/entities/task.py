@@ -22,3 +22,4 @@ class Task(Base):
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     priority = Column(Enum(Priority), nullable=False, default=Priority.Medium)
     created_by = Column(UUID(as_uuid=True), nullable=False)
+    assigned = Column(UUID(as_uuid=True), nullable=True)
