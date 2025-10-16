@@ -30,6 +30,7 @@ DB_PASS=admin123
 DB_PORT=5432
 DB_HOST=localhost
 DB_NAME=taskdb
+AUTH_URL=https://auth.localtest.me
 ```
 ### 3. Set up a virtual environment
 #### 3.1. Create the virtual environment
@@ -73,6 +74,7 @@ DB_PASS=admin123
 DB_PORT=5432
 DB_HOST=db
 DB_NAME=taskdb
+AUTH_URL=https://auth.localtest.me
 ```
 
 ### 2. Build the containers

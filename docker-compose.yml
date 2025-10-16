@@ -12,6 +12,7 @@ services:
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - AUTH_URL=${AUTH_URL}
     depends_on:
       - db
     volumes:

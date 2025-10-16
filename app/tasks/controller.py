@@ -1,10 +1,11 @@
 from fastapi import APIRouter, status, Depends
 from typing import List
 from uuid import UUID
+from ..auth.models import AuthContext
 from ..database.core import DbSession
 from . import models
 from . import service
-from app.auth.dependencies import get_current_user;
+from app.auth.dependencies import get_auth_context;
 
 router = APIRouter(
     prefix="/tasks",
@@ -12,25 +13,25 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=models.TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(db: DbSession, task: models.TaskCreate, current_user: dict = Depends(get_current_user)):
-    return service.create_task(db, task, user_id=current_user["id"])
+def create_task(db: DbSession, task: models.TaskCreate, auth_context: AuthContext = Depends(get_auth_context)):
+    return service.create_task(db, task, user_id=auth_context.user_id)
 
 @router.get("/{id}", response_model=models.TaskResponse)
-def get_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
+def get_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return service.get_task_by_id(db, id)
 
 @router.get("/", response_model=List[models.TaskResponse])
-def get_tasks(db: DbSession, current_user: dict = Depends(get_current_user)):
+def get_tasks(db: DbSession, auth_context: AuthContext = Depends(get_auth_context)):
     return service.get_tasks(db)
 
 @router.put("/{id}", response_model=models.TaskResponse)
-def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate, current_user: dict = Depends(get_current_user)):
+def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate, auth_context: AuthContext = Depends(get_auth_context)):
     return service.update_task(db, id, task_to_update)
 
 @router.put("/{id}/complete", response_model=models.TaskResponse)
-def complete_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
+def complete_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return service.complete_task(db, id)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(db: DbSession, id: UUID, current_user: dict = Depends(get_current_user)):
+def delete_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     service.delete_task(db, id)
