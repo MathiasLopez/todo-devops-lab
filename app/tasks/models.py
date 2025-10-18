@@ -6,10 +6,10 @@ from app.entities.task import Priority
 class TaskBase(BaseModel):
     title: str
     description: str
+    assigned: Optional[UUID] = None
     priority: Priority = Priority.Medium
 
 class TaskCreate(TaskBase):
-    assigned: Optional[UUID] = None
     pass
 
 class TaskUpdate(BaseModel):
