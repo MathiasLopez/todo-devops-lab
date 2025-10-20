@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime, timezone
 import enum
 from ..database.core import Base
+from sqlalchemy.orm import relationship
+from ..entities.board import Board # Required for relation with board
 
 class Priority(enum.Enum):
     Normal = 0
@@ -23,3 +25,7 @@ class Task(Base):
     priority = Column(Enum(Priority), nullable=False, default=Priority.Medium)
     created_by = Column(UUID(as_uuid=True), nullable=False)
     assigned = Column(UUID(as_uuid=True), nullable=True)
+
+    # Mandatory relationship with Board
+    board_id = Column(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
+    board = relationship("Board", back_populates="tasks")
