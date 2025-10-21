@@ -25,6 +25,8 @@ class Task(Base):
     priority = Column(Enum(Priority), nullable=False, default=Priority.Medium)
     created_by = Column(UUID(as_uuid=True), nullable=False)
     assigned = Column(UUID(as_uuid=True), nullable=True)
+    modified_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    modified_by = Column(UUID(as_uuid=True), nullable=False)
 
     # Mandatory relationship with Board
     board_id = Column(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
