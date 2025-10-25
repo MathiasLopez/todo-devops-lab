@@ -2,11 +2,21 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_crud(client):
-        task_values = {"title": "Test E2E", "description": "Test created E2E", "priority": 1}
+        board_values = {"title": "Test E2E", "description": "Board test created in E2E"}
+        task_values = {"title": "Test E2E", "description": "Task test created in E2E", "priority": 1}
+
+        #create new board
+        create_board_response = await client.post(
+            f"/boards/", 
+            json=board_values
+        )
+        assert create_board_response.status_code == 201
+        created_board = create_board_response.json()
+        assert created_board["title"] == board_values["title"]
 
         # Create new task
         create_response = await client.post(
-            "/tasks/", 
+            f"/boards/{created_board['id']}/tasks", 
             json=task_values
         )
         assert create_response.status_code == 201
@@ -15,7 +25,7 @@ async def test_crud(client):
         assert not created_task["is_completed"]
 
         # Get all tasks
-        list_response = await client.get("/tasks/")
+        list_response = await client.get(f"/boards/{created_board['id']}/tasks")
         assert list_response.status_code == 200
         tasks = list_response.json()
 
