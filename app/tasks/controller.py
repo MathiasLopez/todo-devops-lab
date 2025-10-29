@@ -12,13 +12,13 @@ router = APIRouter(
     tags=["Tasks"]
 )
 
-@router.get("/{id}", response_model=models.TaskResponse)
-def get_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    return service.get_task_by_id(db, id)
+# @router.get("/{id}", response_model=models.TaskResponse)
+# def get_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+#     return service.get_task_by_id(db, id)
 
-@router.get("/", response_model=List[models.TaskResponse])
-def get_tasks(db: DbSession, auth_context: AuthContext = Depends(get_auth_context)):
-    return service.get_tasks(db)
+# @router.get("/", response_model=List[models.TaskResponse])
+# def get_tasks(db: DbSession, auth_context: AuthContext = Depends(get_auth_context)):
+#     return service.get_tasks(db)
 
 @router.put("/{id}", response_model=models.TaskResponse)
 def update_task(db: DbSession, id: UUID, task_to_update: models.TaskUpdate, auth_context: AuthContext = Depends(get_auth_context)):
@@ -30,4 +30,4 @@ def complete_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(g
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    service.delete_task(db, id)
+    service.delete_task(db, id, auth_context.user_id)

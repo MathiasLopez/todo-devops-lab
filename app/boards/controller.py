@@ -29,11 +29,11 @@ def delete_Board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(ge
 
 @router.get("/", response_model=List[model.BoardResponse])
 def get_Boards(db: DbSession, auth_context: AuthContext = Depends(get_auth_context)):
-    return service.get_all(db)
+    return service.get_all(db, user_id=auth_context.user_id)
 
 @router.get("/{id}", response_model=model.BoardResponse)
 def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    return service.get_by_id(db, id)
+    return service.get_by_id(db, id, auth_context.user_id)
 
 # Tasks
 @router.post("/{board_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -42,4 +42,4 @@ def create_task(db: DbSession, board_id: UUID, task: TaskCreate, auth_context: A
 
 @router.get("/{board_id}/tasks",response_model=List[TaskResponse])
 def get_tasks(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    return get_task_service(db, board_id=board_id)
+    return get_task_service(db, user_id=auth_context.user_id, board_id=board_id)

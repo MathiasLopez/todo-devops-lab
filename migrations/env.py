@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database.core import Base, DATABASE_URL
-from app.entities import task, board # necessary to create and apply migrations
+from app.entities import task, board, boardUserPermission # necessary to create and apply migrations
 
 import os
 import sys

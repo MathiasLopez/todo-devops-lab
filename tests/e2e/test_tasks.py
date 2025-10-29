@@ -37,11 +37,11 @@ async def test_crud(client):
         completed_task_response = await client.put(f"/tasks/{created_task['id']}/complete")
         assert completed_task_response.status_code == 200
         
-        # Get task
-        task_response = await client.get(f"/tasks/{created_task['id']}")
-        assert task_response.status_code == 200
-        recovered_task = task_response.json()
-        assert recovered_task["is_completed"]
+        # Get task TODO: Deprecated
+        # task_response = await client.get(f"/tasks/{created_task['id']}")
+        # assert task_response.status_code == 200
+        # recovered_task = task_response.json()
+        # assert recovered_task["is_completed"]
         
         # Update task
         update_task_values = {"description": "Test created E2E updated"}
