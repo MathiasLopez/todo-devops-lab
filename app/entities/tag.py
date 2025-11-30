@@ -1,18 +1,15 @@
-# models/board.py
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .mixins import AuditMixin
+from .base import Base
+from .task_tag import task_tags
 import uuid
 
-from .base import Base
-
-class Board(Base, AuditMixin):
-    __tablename__ = "boards"
+class Tag(Base, AuditMixin):
+    __tablename__ = "tags"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(100), nullable=False)
-    description = Column(String, nullable=True)
 
-    # Relation 1 -> N
-    columns = relationship("Column", back_populates="board", cascade="all, delete-orphan")
+    tasks = relationship("Task", secondary=task_tags, back_populates="tags")
