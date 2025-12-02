@@ -1,5 +1,5 @@
 # models/column.py
-from sqlalchemy import Column as SAColumn, String, Integer, ForeignKey
+from sqlalchemy import Column as SAColumn, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .mixins import AuditMixin
@@ -7,8 +7,8 @@ import uuid
 
 from .base import Base
 
-class Column(Base, AuditMixin):
-    __tablename__ = "columns"
+class BoardColumn(Base, AuditMixin):
+    __tablename__ = "board_columns"
 
     id = SAColumn(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     board_id = SAColumn(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)

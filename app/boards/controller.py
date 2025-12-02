@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Depends
 from typing import List
 from uuid import UUID
 from ..auth.models import AuthContext
-from ..database.core import DbSession
+from ..database.core.database import DbSession
 from . import model
 from . import service
 from app.auth.dependencies import get_auth_context;

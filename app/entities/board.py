@@ -5,6 +5,9 @@ from sqlalchemy.orm import relationship
 from .mixins import AuditMixin
 import uuid
 
+# Needed for SQLAlchemy to establish the relationship
+from .boardColumn import BoardColumn
+
 from .base import Base
 
 class Board(Base, AuditMixin):
@@ -15,4 +18,4 @@ class Board(Base, AuditMixin):
     description = Column(String, nullable=True)
 
     # Relation 1 -> N
-    columns = relationship("Column", back_populates="board", cascade="all, delete-orphan")
+    columns = relationship("BoardColumn", back_populates="board", cascade="all, delete-orphan")

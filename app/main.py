@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .database.core import wait_for_db
+from .database.core.database import wait_for_db
 from .api import register_routers
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
