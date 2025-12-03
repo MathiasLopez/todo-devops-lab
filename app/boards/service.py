@@ -7,6 +7,7 @@ from ..entities.boardUserPermission import BoardUserPermission
 from . import model
 from ..entities.board import Board
 from uuid import UUID
+from ..utils import model_utils
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
     try:
@@ -29,17 +30,17 @@ def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
         db.rollback()
         raise e
 
-def update(db: Session, id: UUID, board_in: model.BoardUpdate, user_id: UUID) -> Board:
-    board = get_by_id(db, id)
-    update_model_fields(board, board_in)
+def update(db: Session, board_id: UUID, board_in: model.BoardUpdate, user_id: UUID) -> Board:
+    board = get_by_id(db, board_id, user_id)
+    model_utils.update_model_fields(board, board_in)
     board.modified_by = user_id
     db.commit()
     db.refresh(board)
 
     return board
 
-def delete(db: Session, id:UUID) -> None:
-    board = get_by_id(db, id)
+def delete(db: Session, board_id:UUID, user_id:UUID) -> None:
+    board = get_by_id(db, board_id, user_id)
     db.delete(board)
     db.commit()
 
@@ -52,22 +53,15 @@ def get_all(db: Session, user_id: UUID):
     result = db.execute(query).scalars().all()
     return result
 
-def _get_by_id(db: Session, id:UUID) -> Board:
-    board = db.get(Board, id)
+def _get_by_id(db: Session, board_id:UUID) -> Board:
+    board = db.get(Board, board_id)
     if not board:
         raise HTTPException(status_code=404, detail="Board not found")
 
     return board
 
-def update_model_fields(model, update_obj) -> None:
-    """
-    Update the model attributes according to the non None values of the Pydantic object.
-    """
-    for field, value in update_obj.model_dump(exclude_unset=True).items():
-        setattr(model, field, value)
-
-def get_by_id(db: Session, id:UUID, user_id: UUID):
-    board = _get_by_id(db, id)
+def get_by_id(db: Session, board_id:UUID, user_id: UUID):
+    board = _get_by_id(db, board_id)
     has_permission = db.query(BoardUserPermission).filter_by(
         board_id=board.id,
         user_id=user_id

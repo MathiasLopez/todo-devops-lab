@@ -1,11 +1,14 @@
 from fastapi import APIRouter, status, Depends
 from typing import List
 from uuid import UUID
+
 from ..auth.models import AuthContext
 from ..database.core.database import DbSession
 from . import model
 from . import service
 from app.auth.dependencies import get_auth_context;
+from ..columns.models import ColumnCreate, ColumnResponse
+from ..columns import service as column_services
 from ..tasks.models import TaskCreate, TaskResponse
 from ..tasks.service import create_task as create_task_service
 from ..tasks.service import get_tasks as get_task_service
@@ -25,7 +28,7 @@ def update_Board(db: DbSession, id: UUID, board: model.BoardUpdate, auth_context
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_Board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    service.delete(db, id)
+    service.delete(db, id, auth_context.user_id)
 
 @router.get("/", response_model=List[model.BoardResponse])
 def get_Boards(db: DbSession, auth_context: AuthContext = Depends(get_auth_context)):
@@ -34,6 +37,11 @@ def get_Boards(db: DbSession, auth_context: AuthContext = Depends(get_auth_conte
 @router.get("/{id}", response_model=model.BoardResponse)
 def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return service.get_by_id(db, id, auth_context.user_id)
+
+# Columns
+@router.post("/{board_id}/Columns", response_model=ColumnResponse)
+def create_column(db: DbSession, board_id: UUID, data: ColumnCreate, auth_context: AuthContext = Depends(get_auth_context)):
+    return column_services.create(db, board_id, auth_context.user_id, data)
 
 # Tasks
 @router.post("/{board_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
