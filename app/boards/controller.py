@@ -7,7 +7,7 @@ from ..database.core.database import DbSession
 from . import model
 from . import service
 from app.auth.dependencies import get_auth_context;
-from ..columns.models import ColumnCreate, ColumnResponse
+from ..columns.models import ColumnCreate, ColumnResponse, ColumnWithTaskResponse
 from ..columns import service as column_services
 from ..tasks.models import TaskCreate, TaskResponse
 from ..tasks.service import create_task as create_task_service
@@ -39,9 +39,14 @@ def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_a
     return service.get_by_id(db, id, auth_context.user_id)
 
 # Columns
-@router.post("/{board_id}/Columns", response_model=ColumnResponse)
+@router.post("/{board_id}/columns", response_model=ColumnResponse)
 def create_column(db: DbSession, board_id: UUID, data: ColumnCreate, auth_context: AuthContext = Depends(get_auth_context)):
     return column_services.create(db, board_id, auth_context.user_id, data)
+
+@router.get("/{board_id}/columns", response_model=list[ColumnWithTaskResponse])
+def get_columns(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+    return column_services.get_columns_with_tasks(db, board_id, auth_context.user_id)
+
 
 # Tasks
 @router.post("/{board_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)

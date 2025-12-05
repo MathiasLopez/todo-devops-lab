@@ -1,11 +1,12 @@
 # services/column_service.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from uuid import UUID
 
 from ..entities.board import Board
 from ..entities.boardUserPermission import BoardUserPermission
 from ..entities.boardColumn import BoardColumn
+from ..entities.task import Task
 from ..boards import service as boardService
 from . import models
 from ..utils import model_utils
@@ -40,6 +41,26 @@ def delete(db: Session, column_id: UUID, user_id: UUID):
     db.delete(column)
     db.commit()
 
+def get_columns_with_tasks(db, board_id: UUID, user_id: UUID):
+    board = boardService.get_by_id(db, board_id, user_id)
+
+    # columns
+    # └── tasks
+    #     ├── tags
+    #     └── priority
+    columns = (
+        db.query(BoardColumn)
+        .options(
+            joinedload(BoardColumn.tasks)
+                .joinedload(Task.priority),
+            joinedload(BoardColumn.tasks)
+                .joinedload(Task.tags)
+        )
+        .filter(BoardColumn.board_id == board.id)
+        .all()
+    )
+
+    return columns
 
 def get_by_id(db: Session, column_id:UUID, user_id: UUID):
     column = _get_by_id(db, column_id)
