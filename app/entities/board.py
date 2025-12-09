@@ -7,6 +7,7 @@ import uuid
 
 # Needed for SQLAlchemy to establish the relationship
 from .boardColumn import BoardColumn
+from .tag import Tag
 
 from .base import Base
 
@@ -19,3 +20,5 @@ class Board(Base, AuditMixin):
 
     # Relation 1 -> N
     columns = relationship("BoardColumn", back_populates="board", cascade="all, delete-orphan")
+    tags = relationship("Tag", back_populates="board", cascade="all, delete-orphan")
+

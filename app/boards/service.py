@@ -71,3 +71,29 @@ def get_by_id(db: Session, board_id:UUID, user_id: UUID):
         raise HTTPException(status_code=403, detail="Board not shared with you")
     
     return board
+
+def check_user_permissions(db: Session, board_id: UUID, user_id: UUID)  -> Board:
+    """
+    Checks whether a user has access to a board.
+    Returns an HTTP 403 if the user not has permissions.
+    """
+
+    board = db.get(Board, board_id)
+    if not board:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    # TODO: If the user is the owner, we could give them direct access. 
+    #If we decided this, we would not have to add the record to the permissions table for the creator.
+    # if board.created_by == user_id:
+    #     return board
+
+    has_permission = (
+        db.query(BoardUserPermission)
+        .filter_by(board_id=board_id, user_id=user_id)
+        .first()
+    )
+
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Board not shared with you")
+
+    return board
