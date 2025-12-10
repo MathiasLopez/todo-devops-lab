@@ -12,6 +12,8 @@ from ..columns import service as column_services
 from ..tasks.models import TaskCreate, TaskResponse
 from ..tasks.service import create_task as create_task_service
 from ..tasks.service import get_tasks as get_task_service
+from ..tags.models import TagCreate, TagResponse
+from ..tags import service as tag_services
 
 router = APIRouter(
     prefix="/boards",
@@ -56,3 +58,12 @@ def create_task(db: DbSession, board_id: UUID, task: TaskCreate, auth_context: A
 @router.get("/{board_id}/tasks",response_model=List[TaskResponse])
 def get_tasks(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return get_task_service(db, user_id=auth_context.user_id, board_id=board_id)
+
+# Tags
+@router.post("/{board_id}/tags", response_model=TagResponse)
+def create_tag(db: DbSession, board_id: UUID, data: TagCreate, auth_context: AuthContext = Depends(get_auth_context)):
+    return tag_services.create_tag(db, data, auth_context.user_id, board_id)
+
+@router.get("/{board_id}/tags", response_model=list[TagResponse])
+def get_tags(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+    return tag_services.get_tags(db, board_id, auth_context.user_id)
