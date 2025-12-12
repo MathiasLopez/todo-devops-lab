@@ -9,9 +9,6 @@ from . import service
 from app.auth.dependencies import get_auth_context;
 from ..columns.models import ColumnCreate, ColumnResponse, ColumnWithTaskResponse
 from ..columns import service as column_services
-from ..tasks.models import TaskCreate, TaskResponse
-from ..tasks.service import create_task as create_task_service
-from ..tasks.service import get_tasks as get_task_service
 from ..tags.models import TagCreate, TagResponse
 from ..tags import service as tag_services
 
@@ -46,18 +43,8 @@ def create_column(db: DbSession, board_id: UUID, data: ColumnCreate, auth_contex
     return column_services.create(db, board_id, auth_context.user_id, data)
 
 @router.get("/{board_id}/columns", response_model=list[ColumnWithTaskResponse])
-def get_columns(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+def get_columns_with_tasks(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return column_services.get_columns_with_tasks(db, board_id, auth_context.user_id)
-
-
-# Tasks
-@router.post("/{board_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(db: DbSession, board_id: UUID, task: TaskCreate, auth_context: AuthContext = Depends(get_auth_context)):
-    return create_task_service(db, task, user_id=auth_context.user_id, board_id=board_id)
-
-@router.get("/{board_id}/tasks",response_model=List[TaskResponse])
-def get_tasks(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    return get_task_service(db, user_id=auth_context.user_id, board_id=board_id)
 
 # Tags
 @router.post("/{board_id}/tags", response_model=TagResponse)

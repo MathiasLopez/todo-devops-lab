@@ -53,24 +53,8 @@ def get_all(db: Session, user_id: UUID):
     result = db.execute(query).scalars().all()
     return result
 
-def _get_by_id(db: Session, board_id:UUID) -> Board:
-    board = db.get(Board, board_id)
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
-
-    return board
-
 def get_by_id(db: Session, board_id:UUID, user_id: UUID):
-    board = _get_by_id(db, board_id)
-    has_permission = db.query(BoardUserPermission).filter_by(
-        board_id=board.id,
-        user_id=user_id
-    ).first()
-
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="Board not shared with you")
-    
-    return board
+    return check_user_permissions(db, board_id, user_id)
 
 def check_user_permissions(db: Session, board_id: UUID, user_id: UUID)  -> Board:
     """

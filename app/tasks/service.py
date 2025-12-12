@@ -1,82 +1,116 @@
-from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from ..entities.boardUserPermission import BoardUserPermission
-from . import models
-from ..entities.task import Task
-from ..boards.service import get_by_id as get_board_by_id
-from uuid import UUID
 
-def create_task(db: Session, task: models.TaskCreate, user_id: UUID, board_id: UUID) -> Task:
-     board = get_board_by_id(db, board_id, user_id=user_id)
-     new_task = Task(**task.model_dump(), created_by = user_id, modified_by=user_id, board_id=board.id)
-     db.add(new_task)
-     db.commit()
-     db.refresh(new_task)
-     return new_task
+from ..entities.task import Task
+from ..entities.tag import Tag
+from ..entities.taskPriority import TaskPriority
+from . import models
+from ..columns import service as columns_service
+from uuid import UUID
+from ..utils import model_utils
+from ..boards.service import check_user_permissions
+
+def create_task(db: Session, task: models.TaskCreate, user_id: UUID, column_id: UUID) -> Task:
+    column = columns_service.get_by_id(db, column_id, user_id)
+
+    priority = db.query(TaskPriority).filter(TaskPriority.id == task.priority_id).first()
+    if not priority:
+        raise HTTPException(status_code=404, detail="Priority not found")
+
+    tags = []
+    if task.tags:
+        tags = db.query(Tag).filter(Tag.id.in_(task.tags)).all()
+
+        if len(tags) != len(task.tags):
+            existing_ids = {str(t.id) for t in tags}
+            missing = [
+                str(tag_id)
+                for tag_id in task.tags
+                if str(tag_id) not in existing_ids
+            ]
+            raise HTTPException(status_code=404, detail={"Some tags do not exist": missing})
+
+        for tag in tags:
+            if tag.board_id != column.board_id:
+                raise HTTPException(status_code=400, detail=f"Tag {tag.id} does not belong to board {column.board_id}")
+
+    try:
+        new_task = Task(
+            title=task.title,
+            description=task.description,
+            assigned=task.assigned,
+            priority_id=task.priority_id,
+            column_id=column.id,
+            created_by=user_id,
+            modified_by=user_id,
+        )
+
+        db.add(new_task)
+        db.commit()
+        db.refresh(new_task)
+
+        if tags:
+            new_task.tags = tags
+            db.commit()
+            db.refresh(new_task)
+
+        return new_task
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating task: {str(e)}")
 
 def get_task_by_id(db: Session, id:UUID, user_id: UUID) -> Task:
      task = db.get(Task, id)
      if not task:
           raise HTTPException(status_code=404, detail="Task not found")
      
-     has_permission = db.query(BoardUserPermission).filter_by(
-        board_id=task.board_id,
-        user_id=user_id
-    ).first()
-     
-     if not has_permission:
-        raise HTTPException(status_code=403, detail="Board not shared with you")
+     check_user_permissions(db, task.column.board_id, user_id)
      
      return task
 
-def get_tasks(db: Session, user_id: UUID, board_id: UUID) -> list[models.TaskResponse]:
-     has_access = (
-          db.query(BoardUserPermission)
-          .filter(
-               BoardUserPermission.board_id == board_id,
-               BoardUserPermission.user_id == user_id,
-          )
-          .first()
-     )
-     
-     if not has_access:
-          raise HTTPException(status_code=403, detail="Board not shared with you")
-     
-     query = db.query(Task).filter(Task.board_id == board_id)
-
-     tasks = query.all()
-
-     return tasks
-
-def update_task(db: Session, id: UUID, task_to_update: models.TaskUpdate, user_id: UUID) -> Task:
+def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -> Task:
     task = get_task_by_id(db, id, user_id)
-    update_model_fields(task, task_to_update)
-    task.modified_by = user_id
-    db.commit()
-    db.refresh(task)
+    
+    if data.priority_id is not None:
+        priority = db.query(TaskPriority).filter(TaskPriority.id == data.priority_id).first()
+        
+        if not priority:
+            raise HTTPException(status_code=404, detail="Priority not found")
+        
+    tags = None
+    if data.tags is not None:
+        tags = db.query(Tag).filter(Tag.id.in_(data.tags)).all()
+        
+        if len(tags) != len(data.tags):
+            existing_ids = {str(t.id) for t in tags}
+            missing = [
+                str(tag_id)
+                for tag_id in data.tags
+                if str(tag_id) not in existing_ids
+                ]
+            raise HTTPException(status_code=404, detail={"Some tags do not exist": missing})
+        for tag in tags:
+            if tag.board_id != task.column.board_id:
+                raise HTTPException(status_code=400, detail=f"Tag {tag.id} does not belong to board {task.column.board_id}")
+    
+    try:
+        model_utils.update_model_fields(task, data, exclude={"tags"})
+        task.modified_by = user_id
 
-    return task
+        if data.tags is not None:
+            task.tags = tags
 
-def complete_task(db: Session, id: UUID, user_id: UUID) -> Task:
-     task = get_task_by_id(db, id, user_id)
-     if task.is_completed:
-          return task
-     
-     task.is_completed = True
-     task.modified_by = user_id
-     db.commit()
-     db.refresh(task)
-     return task
+        db.commit()
+        db.refresh(task)
+        return task
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
+
 
 def delete_task(db: Session, id: UUID, user_id: UUID) -> None:
      task = get_task_by_id(db, id, user_id)
      db.delete(task)
      db.commit()
-
-def update_model_fields(model, update_obj) -> None:
-    """
-    Update the model attributes according to the non None values of the Pydantic object.
-    """
-    for field, value in update_obj.model_dump(exclude_unset=True).items():
-        setattr(model, field, value)
