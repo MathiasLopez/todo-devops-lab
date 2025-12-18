@@ -1,4 +1,4 @@
-# models/column.py
+# entities/boardColumn.py
 from sqlalchemy import Column as SAColumn, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

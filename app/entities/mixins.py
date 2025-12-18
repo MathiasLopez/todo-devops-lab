@@ -1,3 +1,4 @@
+# entities/mixins.py
 from datetime import datetime, timezone
 from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID

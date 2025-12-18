@@ -7,7 +7,7 @@ from alembic import context
 
 from app.entities.base import Base
 from app.database.core.database import DATABASE_URL
-from app.entities import board, boardColumn, boardUserPermission, task, task_tag, taskPriority, tag # necessary to create and apply migrations
+from app.entities import board, boardColumn, boardUserPermission, task, task_tag, priority, tag # necessary to create and apply migrations
 
 import os
 import sys

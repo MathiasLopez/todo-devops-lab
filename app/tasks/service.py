@@ -1,9 +1,10 @@
+# tasks/service.py
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..entities.task import Task
 from ..entities.tag import Tag
-from ..entities.taskPriority import TaskPriority
+from ..entities.priority import Priority
 from . import models
 from ..columns import service as columns_service
 from uuid import UUID
@@ -13,7 +14,7 @@ from ..boards.service import check_user_permissions
 def create_task(db: Session, task: models.TaskCreate, user_id: UUID, column_id: UUID) -> Task:
     column = columns_service.get_by_id(db, column_id, user_id)
 
-    priority = db.query(TaskPriority).filter(TaskPriority.id == task.priority_id).first()
+    priority = db.query(Priority).filter(Priority.id == task.priority_id).first()
     if not priority:
         raise HTTPException(status_code=404, detail="Priority not found")
 
@@ -73,7 +74,7 @@ def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -
     task = get_task_by_id(db, id, user_id)
     
     if data.priority_id is not None:
-        priority = db.query(TaskPriority).filter(TaskPriority.id == data.priority_id).first()
+        priority = db.query(Priority).filter(Priority.id == data.priority_id).first()
         
         if not priority:
             raise HTTPException(status_code=404, detail="Priority not found")

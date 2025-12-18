@@ -1,3 +1,4 @@
+# entities/boardUserPermissions.py
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from .mixins import AuditMixin

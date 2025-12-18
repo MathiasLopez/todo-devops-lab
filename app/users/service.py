@@ -1,3 +1,4 @@
+# users/service.py
 from ..auth.models import AuthContext
 from .models import User
 from ..utils.http_client import get_http_client

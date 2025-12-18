@@ -4,17 +4,17 @@ from fastapi import HTTPException
 from uuid import UUID
 
 from ..utils import model_utils
-from ..entities.taskPriority import TaskPriority
+from ..entities.priority import Priority
 from .models import PriorityCreate, PriorityUpdate
 
-def create_priority(db: Session, data: PriorityCreate, user_id: UUID) -> TaskPriority:
-    new_priority = TaskPriority(**data.model_dump(), created_by = user_id, modified_by=user_id)
+def create_priority(db: Session, data: PriorityCreate, user_id: UUID) -> Priority:
+    new_priority = Priority(**data.model_dump(), created_by = user_id, modified_by=user_id)
     db.add(new_priority)
     db.commit()
     db.refresh(new_priority)
     return new_priority
 
-def update_priority(db: Session, priority_id: UUID, data: PriorityUpdate, user_id: UUID) -> TaskPriority:
+def update_priority(db: Session, priority_id: UUID, data: PriorityUpdate, user_id: UUID) -> Priority:
     priority = get_priority_by_id(db, priority_id)
 
     model_utils.update_model_fields(priority, data)
@@ -29,12 +29,12 @@ def delete_priority(db: Session, priority_id: UUID) -> None:
     db.commit()
 
 def get_priorities(db: Session):
-    priorities = db.query(TaskPriority).all()
+    priorities = db.query(Priority).all()
 
     return priorities
 
-def get_priority_by_id(db: Session, priority_id: UUID) -> TaskPriority:
-    priority = db.query(TaskPriority).filter(TaskPriority.id == priority_id).first()
+def get_priority_by_id(db: Session, priority_id: UUID) -> Priority:
+    priority = db.query(Priority).filter(Priority.id == priority_id).first()
     if not priority:
         raise HTTPException(status_code=404, detail="Priority not found")
     return priority

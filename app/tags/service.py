@@ -1,4 +1,4 @@
-# tag/service.py
+# tags/service.py
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from uuid import UUID
