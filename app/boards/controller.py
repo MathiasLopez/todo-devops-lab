@@ -38,7 +38,7 @@ def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_a
     return service.get_by_id(db, id, auth_context.user_id)
 
 # Columns
-@router.post("/{board_id}/columns", response_model=ColumnResponse)
+@router.post("/{board_id}/columns", response_model=ColumnResponse, status_code=status.HTTP_201_CREATED)
 def create_column(db: DbSession, board_id: UUID, data: ColumnCreate, auth_context: AuthContext = Depends(get_auth_context)):
     return column_services.create(db, board_id, auth_context.user_id, data)
 
@@ -47,7 +47,7 @@ def get_columns_with_tasks(db: DbSession, board_id: UUID, auth_context: AuthCont
     return column_services.get_columns_with_tasks(db, board_id, auth_context.user_id)
 
 # Tags
-@router.post("/{board_id}/tags", response_model=TagResponse)
+@router.post("/{board_id}/tags", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
 def create_tag(db: DbSession, board_id: UUID, data: TagCreate, auth_context: AuthContext = Depends(get_auth_context)):
     return tag_services.create_tag(db, data, auth_context.user_id, board_id)
 

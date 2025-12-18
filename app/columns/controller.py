@@ -22,6 +22,6 @@ def delete_column(db: DbSession, id: UUID, auth_context: AuthContext = Depends(g
     service.delete(db, id, auth_context.user_id)
 
 # Tasks
-@router.post("/{column_id}/tasks", response_model=TaskResponse)
+@router.post("/{column_id}/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(db: DbSession, column_id: UUID, data: TaskCreate, auth_context: AuthContext = Depends(get_auth_context)):
     return task_services.create_task(db, data, auth_context.user_id, column_id)
