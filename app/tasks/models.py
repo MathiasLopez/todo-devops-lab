@@ -8,7 +8,7 @@ from ..tags.models import TagResponse
 
 class TaskBase(BaseModel):
     title: str
-    description: str
+    description: Optional[str] = None
     priority_id: UUID
     assigned: Optional[UUID] = None
     tags: Optional[List[UUID]] = None
@@ -16,11 +16,10 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     pass
 
-class TaskUpdate(BaseModel):
+class TaskUpdate(TaskBase):
     title: Optional[str] = None
-    description: Optional[str] = None
     priority_id: Optional[UUID] = None
-    tags: Optional[List[UUID]] = None
+    column_id: Optional[UUID] = None
 
 class TaskResponse(TaskBase):
     id: UUID
@@ -29,5 +28,6 @@ class TaskResponse(TaskBase):
     modified_by: UUID
     modified_at: datetime
 
+    column_id: UUID
     priority: PriorityResponse
     tags: List[TagResponse]

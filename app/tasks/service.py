@@ -72,6 +72,12 @@ def get_task_by_id(db: Session, id:UUID, user_id: UUID) -> Task:
 
 def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -> Task:
     task = get_task_by_id(db, id, user_id)
+
+    if data.column_id is not None:
+        target_column = columns_service.get_by_id(db, data.column_id, user_id)
+
+        if target_column.board_id != task.column.board_id:
+            raise HTTPException(status_code=400, detail="Cannot move task across boards")
     
     if data.priority_id is not None:
         priority = db.query(Priority).filter(Priority.id == data.priority_id).first()
