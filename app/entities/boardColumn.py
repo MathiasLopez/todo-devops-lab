@@ -13,7 +13,7 @@ class BoardColumn(Base, AuditMixin):
     id = SAColumn(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     board_id = SAColumn(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
     title = SAColumn(String(100), nullable=False)
-    description = SAColumn(String, nullable=False)
+    description = SAColumn(String, nullable=True)
 
     # Relationships
     board = relationship("Board", back_populates="columns")

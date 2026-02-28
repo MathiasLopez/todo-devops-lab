@@ -6,13 +6,38 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..entities.boardUserPermission import BoardUserPermission
 from . import model
 from ..entities.board import Board
+from ..entities.boardColumn import BoardColumn
+from ..entities.tag import Tag
 from uuid import UUID
 from ..utils import model_utils
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
     try:
         with db.begin():
-            new_board = Board(**board_in.model_dump(), created_by=user_id, modified_by=user_id)
+            if board_in.columns:
+                seen_columns = set()
+                for column in board_in.columns:
+                    title = (column.title or "").strip()
+                    if not title:
+                        raise HTTPException(status_code=400, detail="Column title cannot be empty")
+                    normalized = title.lower()
+                    if normalized in seen_columns:
+                        raise HTTPException(status_code=400, detail=f"Duplicate column title: {title}")
+                    seen_columns.add(normalized)
+
+            if board_in.tags:
+                seen_tags = set()
+                for tag in board_in.tags:
+                    title = (tag.title or "").strip()
+                    if not title:
+                        raise HTTPException(status_code=400, detail="Tag title cannot be empty")
+                    normalized = title.lower()
+                    if normalized in seen_tags:
+                        raise HTTPException(status_code=400, detail=f"Duplicate tag title: {title}")
+                    seen_tags.add(normalized)
+
+            board_data = board_in.model_dump(exclude={"columns", "tags"})
+            new_board = Board(**board_data, created_by=user_id, modified_by=user_id)
             db.add(new_board)
             db.flush()
 
@@ -23,6 +48,30 @@ def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
                 modified_by=user_id
             )
             db.add(board_user_permission)
+
+            if board_in.columns:
+                for column in board_in.columns:
+                    column_description = (column.description or "").strip()
+                    if not column_description:
+                        column_description = ""
+                    new_column = BoardColumn(
+                        board_id=new_board.id,
+                        title=column.title,
+                        description=column_description,
+                        created_by=user_id,
+                        modified_by=user_id
+                    )
+                    db.add(new_column)
+
+            if board_in.tags:
+                for tag in board_in.tags:
+                    new_tag = Tag(
+                        board_id=new_board.id,
+                        title=tag.title,
+                        created_by=user_id,
+                        modified_by=user_id
+                    )
+                    db.add(new_tag)
 
             db.refresh(new_board)
             return new_board

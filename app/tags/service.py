@@ -17,7 +17,7 @@ def create_tag(db: Session, data: TagCreate, user_id: UUID, board_id: UUID) -> T
     return new_tag
 
 def update_tag(db: Session, tag_id: UUID, data: TagUpdate, user_id: UUID) -> Tag:
-    tag = get_tag_by_id(db, tag_id)
+    tag = get_tag_by_id(db, tag_id, user_id)
 
     model_utils.update_model_fields(tag, data)
     tag.modified_by = user_id
@@ -26,7 +26,7 @@ def update_tag(db: Session, tag_id: UUID, data: TagUpdate, user_id: UUID) -> Tag
     return tag
 
 def delete_tag(db: Session, tag_id: UUID, user_id:UUID) -> None:
-    tag = get_tag_by_id(db, tag_id)
+    tag = get_tag_by_id(db, tag_id, user_id)
     db.delete(tag)
     db.commit()
 

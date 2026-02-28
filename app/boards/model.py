@@ -1,14 +1,18 @@
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel
 from datetime import datetime
 
+from ..columns.models import ColumnCreate
+from ..tags.models import TagCreate
+
 class BoardBase(BaseModel):
     title: str
-    description: str
+    description: Optional[str] = None
 
 class BoardCreate(BoardBase):
-    pass
+    columns: Optional[List[ColumnCreate]] = None
+    tags: Optional[List[TagCreate]] = None
 
 class BoardUpdate(BaseModel):
     title: Optional[str] = None
