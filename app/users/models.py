@@ -2,6 +2,6 @@
 from pydantic import BaseModel
 from uuid import UUID
 
-class User(BaseModel):
+class UserResponse(BaseModel):
     id: UUID
     username: str

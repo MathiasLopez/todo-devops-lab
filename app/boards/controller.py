@@ -11,6 +11,7 @@ from ..columns.models import ColumnCreate, ColumnResponse, ColumnWithTaskRespons
 from ..columns import service as column_services
 from ..tags.models import TagCreate, TagResponse
 from ..tags import service as tag_services
+from ..users import models as user_models
 
 router = APIRouter(
     prefix="/boards",
@@ -36,6 +37,11 @@ def get_Boards(db: DbSession, auth_context: AuthContext = Depends(get_auth_conte
 @router.get("/{id}", response_model=model.BoardResponse)
 def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return service.get_by_id(db, id, auth_context.user_id)
+
+# Board users
+@router.get("/{board_id}/users", response_model=List[user_models.UserResponse])
+async def get_board_users(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+    return await service.get_board_users(db, board_id, auth_context)
 
 # Columns
 @router.post("/{board_id}/columns", response_model=ColumnResponse, status_code=status.HTTP_201_CREATED)

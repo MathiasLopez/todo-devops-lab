@@ -1,12 +1,12 @@
 # users/service.py
 from ..auth.models import AuthContext
-from .models import User
+from .models import UserResponse
 from ..utils.http_client import get_http_client
 import os
 
 AUTH_URL = os.getenv("AUTH_URL")
 
-async def get_users(auth_context: AuthContext) -> list[User]:
+async def get_users(auth_context: AuthContext) -> list[UserResponse]:
     """
     Call the /api/users endpoint of the authentication service (SSO) and return a list of users.
     """
@@ -17,5 +17,5 @@ async def get_users(auth_context: AuthContext) -> list[User]:
         )
         response.raise_for_status()
         data = response.json()
-        return [User(**user) for user in data]
+        return [UserResponse(**user) for user in data]
      

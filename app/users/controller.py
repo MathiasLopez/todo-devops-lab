@@ -12,6 +12,6 @@ router = APIRouter(
     tags=["Users"]
 )
 
-@router.get("/", response_model=List[models.User])
+@router.get("/", response_model=List[models.UserResponse])
 async def get_users(auth_context: AuthContext = Depends(get_auth_context)):
     return await service.get_users(auth_context)

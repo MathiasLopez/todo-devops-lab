@@ -11,6 +11,9 @@ from ..entities.tag import Tag
 from uuid import UUID
 from ..utils import model_utils
 from ..entities.role import Role
+from ..auth.models import AuthContext
+from ..users import service as user_service
+from ..users.models import UserResponse
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
     try:
@@ -145,3 +148,17 @@ def _get_role_by_name(db: Session, name: str) -> Role:
     if not role:
         raise HTTPException(status_code=500, detail=f"Role '{name}' is not configured")
     return role
+
+
+# Board users
+async def get_board_users(db: Session, board_id: UUID, auth_context: AuthContext) -> list[UserResponse]:
+    # Reuse existing permission check (includes 404 if board does not exist)
+    check_user_permissions(db, board_id, auth_context.user_id)
+
+    user_ids = [row[0] for row in db.query(BoardUserPermission.user_id).filter_by(board_id=board_id).all()]
+    if not user_ids:
+        return []
+
+    all_users = await user_service.get_users(auth_context)
+    users_by_id = {u.id: u for u in all_users}
+    return [users_by_id[user_id] for user_id in user_ids if user_id in users_by_id]
