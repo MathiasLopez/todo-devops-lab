@@ -6,10 +6,6 @@ from .mixins import AuditMixin
 import uuid
 from .base import Base
 
-# Needed for SQLAlchemy to establish the relationship
-from .boardColumn import BoardColumn
-from .priority import Priority
-from .tag import Tag
 from .task_tag import task_tags
 
 class Task(Base, AuditMixin):

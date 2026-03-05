@@ -1,5 +1,6 @@
 # entities/boardUserPermissions.py
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from .mixins import AuditMixin
 from .base import Base
@@ -14,3 +15,6 @@ class BoardUserPermission(Base, AuditMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     board_id = Column(UUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
+    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
+
+    role = relationship("Role", back_populates="board_users")

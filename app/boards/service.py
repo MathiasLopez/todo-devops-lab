@@ -10,74 +10,82 @@ from ..entities.boardColumn import BoardColumn
 from ..entities.tag import Tag
 from uuid import UUID
 from ..utils import model_utils
+from ..entities.role import Role
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
     try:
-        with db.begin():
-            if board_in.columns:
-                seen_columns = set()
-                for column in board_in.columns:
-                    title = (column.title or "").strip()
-                    if not title:
-                        raise HTTPException(status_code=400, detail="Column title cannot be empty")
-                    normalized = title.lower()
-                    if normalized in seen_columns:
-                        raise HTTPException(status_code=400, detail=f"Duplicate column title: {title}")
-                    seen_columns.add(normalized)
+        owner_role = _get_role_by_name(db, "owner")
 
-            if board_in.tags:
-                seen_tags = set()
-                for tag in board_in.tags:
-                    title = (tag.title or "").strip()
-                    if not title:
-                        raise HTTPException(status_code=400, detail="Tag title cannot be empty")
-                    normalized = title.lower()
-                    if normalized in seen_tags:
-                        raise HTTPException(status_code=400, detail=f"Duplicate tag title: {title}")
-                    seen_tags.add(normalized)
+        # Validations happen before mutating the session to avoid partial writes
+        if board_in.columns:
+            seen_columns = set()
+            for column in board_in.columns:
+                title = (column.title or "").strip()
+                if not title:
+                    raise HTTPException(status_code=400, detail="Column title cannot be empty")
+                normalized = title.lower()
+                if normalized in seen_columns:
+                    raise HTTPException(status_code=400, detail=f"Duplicate column title: {title}")
+                seen_columns.add(normalized)
 
-            board_data = board_in.model_dump(exclude={"columns", "tags"})
-            new_board = Board(**board_data, created_by=user_id, modified_by=user_id)
-            db.add(new_board)
-            db.flush()
+        if board_in.tags:
+            seen_tags = set()
+            for tag in board_in.tags:
+                title = (tag.title or "").strip()
+                if not title:
+                    raise HTTPException(status_code=400, detail="Tag title cannot be empty")
+                normalized = title.lower()
+                if normalized in seen_tags:
+                    raise HTTPException(status_code=400, detail=f"Duplicate tag title: {title}")
+                seen_tags.add(normalized)
 
-            board_user_permission = BoardUserPermission(
-                board_id=new_board.id,
-                user_id=user_id,
-                created_by=user_id,
-                modified_by=user_id
-            )
-            db.add(board_user_permission)
+        board_data = board_in.model_dump(exclude={"columns", "tags"})
+        new_board = Board(**board_data, created_by=user_id, modified_by=user_id)
+        db.add(new_board)
+        db.flush()  # to get new_board.id
 
-            if board_in.columns:
-                for column in board_in.columns:
-                    column_description = (column.description or "").strip()
-                    if not column_description:
-                        column_description = ""
-                    new_column = BoardColumn(
-                        board_id=new_board.id,
-                        title=column.title,
-                        description=column_description,
-                        created_by=user_id,
-                        modified_by=user_id
-                    )
-                    db.add(new_column)
+        board_user_permission = BoardUserPermission(
+            board_id=new_board.id,
+            user_id=user_id,
+            role_id=owner_role.id,
+            created_by=user_id,
+            modified_by=user_id
+        )
+        db.add(board_user_permission)
 
-            if board_in.tags:
-                for tag in board_in.tags:
-                    new_tag = Tag(
-                        board_id=new_board.id,
-                        title=tag.title,
-                        created_by=user_id,
-                        modified_by=user_id
-                    )
-                    db.add(new_tag)
+        if board_in.columns:
+            for column in board_in.columns:
+                column_description = (column.description or "").strip()
+                if not column_description:
+                    column_description = ""
+                new_column = BoardColumn(
+                    board_id=new_board.id,
+                    title=column.title,
+                    description=column_description,
+                    created_by=user_id,
+                    modified_by=user_id
+                )
+                db.add(new_column)
 
-            db.refresh(new_board)
-            return new_board
+        if board_in.tags:
+            for tag in board_in.tags:
+                new_tag = Tag(
+                    board_id=new_board.id,
+                    title=tag.title,
+                    created_by=user_id,
+                    modified_by=user_id
+                )
+                db.add(new_tag)
+
+        db.commit()
+        db.refresh(new_board)
+        return new_board
     except SQLAlchemyError as e:
         db.rollback()
         raise e
+    except Exception:
+        db.rollback()
+        raise
 
 def update(db: Session, board_id: UUID, board_in: model.BoardUpdate, user_id: UUID) -> Board:
     board = get_by_id(db, board_id, user_id)
@@ -130,3 +138,10 @@ def check_user_permissions(db: Session, board_id: UUID, user_id: UUID)  -> Board
         raise HTTPException(status_code=403, detail="Board not shared with you")
 
     return board
+
+
+def _get_role_by_name(db: Session, name: str) -> Role:
+    role = db.query(Role).filter_by(name=name).one_or_none()
+    if not role:
+        raise HTTPException(status_code=500, detail=f"Role '{name}' is not configured")
+    return role
