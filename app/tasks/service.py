@@ -10,9 +10,16 @@ from ..columns import service as columns_service
 from uuid import UUID
 from ..utils import model_utils
 from ..boards.service import check_user_permissions
+from ..boards.permissions import (
+    PERM_BOARD_VIEW,
+    PERM_TASK_CREATE,
+    PERM_TASK_UPDATE,
+    PERM_TASK_DELETE,
+)
 
 def create_task(db: Session, task: models.TaskCreate, user_id: UUID, column_id: UUID) -> Task:
     column = columns_service.get_by_id(db, column_id, user_id)
+    check_user_permissions(db, column.board_id, user_id, required_permission=PERM_TASK_CREATE)
 
     priority = db.query(Priority).filter(Priority.id == task.priority_id).first()
     if not priority:
@@ -66,12 +73,13 @@ def get_task_by_id(db: Session, id:UUID, user_id: UUID) -> Task:
      if not task:
           raise HTTPException(status_code=404, detail="Task not found")
      
-     check_user_permissions(db, task.column.board_id, user_id)
+     check_user_permissions(db, task.column.board_id, user_id, required_permission=PERM_BOARD_VIEW)
      
      return task
 
 def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -> Task:
     task = get_task_by_id(db, id, user_id)
+    check_user_permissions(db, task.column.board_id, user_id, required_permission=PERM_TASK_UPDATE)
 
     if data.column_id is not None:
         target_column = columns_service.get_by_id(db, data.column_id, user_id)
@@ -119,5 +127,6 @@ def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -
 
 def delete_task(db: Session, id: UUID, user_id: UUID) -> None:
      task = get_task_by_id(db, id, user_id)
+     check_user_permissions(db, task.column.board_id, user_id, required_permission=PERM_TASK_DELETE)
      db.delete(task)
      db.commit()

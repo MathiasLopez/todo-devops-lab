@@ -43,6 +43,19 @@ def get_board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_a
 async def get_board_users(db: DbSession, board_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
     return await service.get_board_users(db, board_id, auth_context)
 
+# Board members management
+@router.post("/{board_id}/members", response_model=model.BoardMemberResponse, status_code=status.HTTP_201_CREATED)
+def add_board_member(db: DbSession, board_id: UUID, payload: model.BoardMemberCreate, auth_context: AuthContext = Depends(get_auth_context)):
+    return service.add_board_member(db, board_id, payload, auth_context.user_id)
+
+@router.patch("/{board_id}/members/{user_id}", response_model=model.BoardMemberResponse)
+def update_board_member(db: DbSession, board_id: UUID, user_id: UUID, payload: model.BoardMemberUpdate, auth_context: AuthContext = Depends(get_auth_context)):
+    return service.update_board_member(db, board_id, user_id, payload, auth_context.user_id)
+
+@router.delete("/{board_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_board_member(db: DbSession, board_id: UUID, user_id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
+    service.delete_board_member(db, board_id, user_id, auth_context.user_id)
+
 # Columns
 @router.post("/{board_id}/columns", response_model=ColumnResponse, status_code=status.HTTP_201_CREATED)
 def create_column(db: DbSession, board_id: UUID, data: ColumnCreate, auth_context: AuthContext = Depends(get_auth_context)):

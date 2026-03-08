@@ -4,16 +4,16 @@ from fastapi import HTTPException
 from uuid import UUID
 from ..entities.boardColumn import BoardColumn
 from ..entities.task import Task
-from ..boards import service as boardService
 from . import models
 from ..utils import model_utils
 from ..boards.service import check_user_permissions
+from ..boards.permissions import PERM_BOARD_VIEW, PERM_BOARD_UPDATE
 
 def create(db: Session, board_id: UUID, user_id: UUID, data: models.ColumnCreate) -> BoardColumn:
-    board = boardService.get_by_id(db, board_id, user_id)
+    ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_UPDATE)
 
     column = BoardColumn(
-        board_id=board.id,
+        board_id=ctx.board.id,
         title=data.title,
         description=data.description,
         created_by=user_id,
@@ -27,6 +27,7 @@ def create(db: Session, board_id: UUID, user_id: UUID, data: models.ColumnCreate
 
 def update(db: Session, column_id: UUID, user_id: UUID, data: models.ColumnUpdate):
     column = get_by_id(db, column_id, user_id)
+    check_user_permissions(db, column.board.id, user_id, required_permission=PERM_BOARD_UPDATE)
     model_utils.update_model_fields(column, data)
     column.modified_by = user_id
     db.commit()
@@ -36,11 +37,12 @@ def update(db: Session, column_id: UUID, user_id: UUID, data: models.ColumnUpdat
 
 def delete(db: Session, column_id: UUID, user_id: UUID):
     column = get_by_id(db, column_id, user_id)
+    check_user_permissions(db, column.board.id, user_id, required_permission=PERM_BOARD_UPDATE)
     db.delete(column)
     db.commit()
 
 def get_columns_with_tasks(db, board_id: UUID, user_id: UUID):
-    board = boardService.get_by_id(db, board_id, user_id)
+    ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_VIEW)
 
     # columns
     # └── tasks
@@ -54,7 +56,7 @@ def get_columns_with_tasks(db, board_id: UUID, user_id: UUID):
             joinedload(BoardColumn.tasks)
                 .joinedload(Task.tags)
         )
-        .filter(BoardColumn.board_id == board.id)
+        .filter(BoardColumn.board_id == ctx.board.id)
         .all()
     )
 
@@ -65,7 +67,7 @@ def get_by_id(db: Session, column_id:UUID, user_id: UUID):
     if not column:
         raise HTTPException(status_code=404, detail="Board not found")
     
-    check_user_permissions(db, column.board.id, user_id)
+    check_user_permissions(db, column.board.id, user_id, required_permission=PERM_BOARD_VIEW)
     
     return column
     

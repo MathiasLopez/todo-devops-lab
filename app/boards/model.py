@@ -24,3 +24,21 @@ class BoardResponse(BoardBase):
     created_at: datetime
     modified_by: UUID
     modified_at: datetime
+
+
+class BoardMemberBase(BaseModel):
+    role_id: UUID
+
+
+class BoardMemberCreate(BoardMemberBase):
+    user_id: UUID
+
+
+class BoardMemberUpdate(BoardMemberBase):
+    pass
+
+
+class BoardMemberResponse(BoardMemberBase):
+    board_id: UUID
+    user_id: UUID
+    role_name: str
