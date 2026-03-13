@@ -135,7 +135,6 @@ def check_user_permissions(
 ) -> PermissionContext:
     """
     Checks whether a user has access to a board.
-    Optionally validates a specific permission name.
     """
 
     board = db.get(Board, board_id)
@@ -165,13 +164,11 @@ def check_user_permissions(
 
     return PermissionContext(board=board, role=role)
 
-
 def _get_role_by_name(db: Session, name: str) -> Role:
     role = db.query(Role).filter_by(name=name).one_or_none()
     if not role:
         raise HTTPException(status_code=500, detail=f"Role '{name}' is not configured")
     return role
-
 
 def _get_role_by_id(db: Session, role_id: UUID) -> Role:
     role = db.get(Role, role_id)
@@ -179,11 +176,9 @@ def _get_role_by_id(db: Session, role_id: UUID) -> Role:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 
-
 def _ensure_role_not_higher(target_role: Role, actor_role: Role, message: str = "Operation not allowed"):
     if target_role.level > actor_role.level:
         raise HTTPException(status_code=403, detail=message)
-
 
 def _ensure_not_last_owner(db: Session, board_id: UUID, exclude_user_id: UUID | None = None):
     query = (
@@ -196,16 +191,6 @@ def _ensure_not_last_owner(db: Session, board_id: UUID, exclude_user_id: UUID | 
     owners = query.scalar()
     if owners == 0:
         raise HTTPException(status_code=409, detail="Board must have at least one owner")
-
-
-def _build_member_response(bup: BoardUserPermission, role: Role) -> model.BoardMemberResponse:
-    return model.BoardMemberResponse(
-        board_id=bup.board_id,
-        user_id=bup.user_id,
-        role_id=bup.role_id,
-        role_name=role.name,
-    )
-
 
 def add_board_member(db: Session, board_id: UUID, payload: model.BoardMemberCreate, actor_id: UUID) -> model.BoardMemberResponse:
     ctx = check_user_permissions(
@@ -240,8 +225,10 @@ def add_board_member(db: Session, board_id: UUID, payload: model.BoardMemberCrea
 
     # TODO: send email notification to the added user
 
-    return _build_member_response(new_member, role)
-
+    return model.BoardMemberResponse(
+        user_id=new_member.user_id,
+        role_id=new_member.role_id
+    )
 
 def update_board_member(db: Session, board_id: UUID, user_id: UUID, payload: model.BoardMemberUpdate, actor_id: UUID) -> model.BoardMemberResponse:
     ctx = check_user_permissions(
@@ -277,8 +264,10 @@ def update_board_member(db: Session, board_id: UUID, user_id: UUID, payload: mod
     db.commit()
     db.refresh(member)
 
-    return _build_member_response(member, new_role)
-
+    return model.BoardMemberResponse(
+        user_id=member.user_id,
+        role_id=member.role_id
+    )
 
 def delete_board_member(db: Session, board_id: UUID, user_id: UUID, actor_id: UUID) -> None:
     ctx = check_user_permissions(
@@ -319,16 +308,19 @@ def delete_board_member(db: Session, board_id: UUID, user_id: UUID, actor_id: UU
     db.delete(member)
     db.commit()
 
-
-# Board users
-async def get_board_users(db: Session, board_id: UUID, auth_context: AuthContext) -> list[UserResponse]:
-    # Reuse existing permission check (includes 404 if board does not exist)
+def get_board_members(db: Session, board_id: UUID, auth_context: AuthContext) -> list[model.BoardMemberResponse]:
     check_user_permissions(db, board_id, auth_context.user_id, required_permission=PERM_BOARD_VIEW)
 
-    user_ids = [row[0] for row in db.query(BoardUserPermission.user_id).filter_by(board_id=board_id).all()]
-    if not user_ids:
+    rows = (
+        db.query(BoardUserPermission.user_id, Role.id.label("role_id"))
+        .join(Role, Role.id == BoardUserPermission.role_id)
+        .filter(BoardUserPermission.board_id == board_id)
+        .all()
+    )
+    if not rows:
         return []
 
-    all_users = await user_service.get_users(auth_context)
-    users_by_id = {u.id: u for u in all_users}
-    return [users_by_id[user_id] for user_id in user_ids if user_id in users_by_id]
+    result = []
+    for user_id, role_id in rows:
+        result.append(model.BoardMemberResponse(user_id=user_id, role_id=role_id))
+    return result

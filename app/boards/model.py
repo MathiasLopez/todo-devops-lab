@@ -39,6 +39,4 @@ class BoardMemberUpdate(BoardMemberBase):
 
 
 class BoardMemberResponse(BoardMemberBase):
-    board_id: UUID
     user_id: UUID
-    role_name: str
