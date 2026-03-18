@@ -6,7 +6,7 @@ from uuid import UUID
 from ..utils import model_utils
 from ..entities.tag import Tag
 from .models import TagCreate, TagUpdate
-from ..boards.service import check_user_permissions
+from ..boards.access import check_user_permissions
 from ..boards.permissions import PERM_BOARD_VIEW, PERM_TAG_MANAGE
 
 def create_tag(db: Session, data: TagCreate, user_id: UUID, board_id: UUID) -> Tag:

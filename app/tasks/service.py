@@ -9,7 +9,7 @@ from . import models
 from ..columns import service as columns_service
 from uuid import UUID
 from ..utils import model_utils
-from ..boards.service import check_user_permissions
+from ..boards.access import check_user_permissions
 from ..boards.permissions import (
     PERM_BOARD_VIEW,
     PERM_TASK_CREATE,

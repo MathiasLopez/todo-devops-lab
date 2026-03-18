@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session, joinedload
 from ..entities.role import Role
 from ..entities.rolePermission import RolePermission
 from .models import RoleResponse, PermissionResponse
-from ..boards.permissions import PERM_BOARD_MANAGE_MEMBERS
-from ..boards.service import check_user_permissions
+from ..boards.permissions import PERM_BOARD_VIEW
+from ..boards.access import check_user_permissions
 
 
 def list_roles(db: Session, board_id, user_id) -> list[RoleResponse]:
-    check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_MANAGE_MEMBERS)
+    check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_VIEW)
     roles = (
         db.query(Role)
         .options(

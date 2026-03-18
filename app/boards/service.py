@@ -9,8 +9,6 @@ from ..entities.board import Board
 from ..entities.boardColumn import BoardColumn
 from ..entities.tag import Tag
 from ..entities.task import Task
-from ..entities.permission import Permission
-from ..entities.rolePermission import RolePermission
 from uuid import UUID
 from ..utils import model_utils
 from ..entities.role import Role
@@ -18,12 +16,12 @@ from ..auth.models import AuthContext
 from ..users import service as user_service
 from ..users.models import UserResponse
 from .permissions import (
-    PermissionContext,
     PERM_BOARD_VIEW,
     PERM_BOARD_UPDATE,
     PERM_BOARD_DELETE,
     PERM_BOARD_MANAGE_MEMBERS
 )
+from .access import check_user_permissions
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
     try:
@@ -126,43 +124,6 @@ def get_all(db: Session, user_id: UUID):
 def get_by_id(db: Session, board_id:UUID, user_id: UUID):
     ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_VIEW)
     return ctx.board
-
-def check_user_permissions(
-    db: Session,
-    board_id: UUID,
-    user_id: UUID,
-    required_permission: str,
-) -> PermissionContext:
-    """
-    Checks whether a user has access to a board.
-    """
-
-    board = db.get(Board, board_id)
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
-
-    membership = (
-        db.query(BoardUserPermission)
-        .join(Role, Role.id == BoardUserPermission.role_id)
-        .filter(BoardUserPermission.board_id == board_id, BoardUserPermission.user_id == user_id)
-        .first()
-    )
-
-    if not membership:
-        raise HTTPException(status_code=403, detail="Board not shared with you")
-
-    role = db.get(Role, membership.role_id)
-
-    has_permission = (
-        db.query(Permission)
-        .join(RolePermission, Permission.id == RolePermission.permission_id)
-        .filter(RolePermission.role_id == role.id, Permission.name == required_permission)
-        .first()
-    )
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to perform this action")
-
-    return PermissionContext(board=board, role=role)
 
 def _get_role_by_name(db: Session, name: str) -> Role:
     role = db.query(Role).filter_by(name=name).one_or_none()

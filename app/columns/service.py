@@ -6,7 +6,7 @@ from ..entities.boardColumn import BoardColumn
 from ..entities.task import Task
 from . import models
 from ..utils import model_utils
-from ..boards.service import check_user_permissions
+from ..boards.access import check_user_permissions
 from ..boards.permissions import PERM_BOARD_VIEW, PERM_BOARD_UPDATE
 
 def create(db: Session, board_id: UUID, user_id: UUID, data: models.ColumnCreate) -> BoardColumn:
