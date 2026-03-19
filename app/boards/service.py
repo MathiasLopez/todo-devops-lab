@@ -109,6 +109,8 @@ def update(db: Session, board_id: UUID, board_in: model.BoardUpdate, user_id: UU
 
 def delete(db: Session, board_id:UUID, user_id:UUID) -> None:
     ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_DELETE)
+    # Remove board-member links first to satisfy FK constraint
+    db.query(BoardUserPermission).filter_by(board_id=board_id).delete(synchronize_session=False)
     db.delete(ctx.board)
     db.commit()
 

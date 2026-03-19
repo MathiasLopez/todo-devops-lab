@@ -21,4 +21,9 @@ class Board(Base, AuditMixin):
     # Relation 1 -> N
     columns = relationship("BoardColumn", back_populates="board", cascade="all, delete-orphan")
     tags = relationship("Tag", back_populates="board", cascade="all, delete-orphan")
-
+    members = relationship(
+        "BoardUserPermission",
+        back_populates="board",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

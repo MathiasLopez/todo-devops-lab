@@ -17,4 +17,5 @@ class BoardUserPermission(Base, AuditMixin):
     user_id = Column(UUID(as_uuid=True), nullable=False)
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
 
+    board = relationship("Board", back_populates="members")
     role = relationship("Role", back_populates="board_users")
