@@ -59,6 +59,18 @@ async def test_full_flow(client):
     task = r.json()
     assert task["priority"]["color"] == high_priority["color"]
 
+    # Create another task with the same title (duplicates should be allowed)
+    r = await client.post(
+        f"/columns/{column_todo['id']}/tasks",
+        json={
+            "title": "Task E2E",  # duplicate title
+            "description": "Second task with same title",
+            "priority_id": high_priority["id"],
+            "tags": [tag_backend["id"]],
+        },
+    )
+    assert r.status_code == 201
+
     # Update task
     r = await client.put(
         f"/tasks/{task['id']}",
