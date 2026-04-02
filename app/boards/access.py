@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from ..entities.board import Board
 from ..entities.boardUserPermission import BoardUserPermission
 from ..entities.role import Role
-from ..entities.permission import Permission
 from ..entities.rolePermission import RolePermission
 from sqlalchemy.orm import joinedload
 from .permissions import PermissionContext
+from app.auth.access import find_global_role_with_permission, ensure_base_global_role
 
 
 def check_user_permissions(
@@ -24,6 +24,8 @@ def check_user_permissions(
     if not board:
         raise HTTPException(status_code=404, detail="Board not found")
 
+    ensure_base_global_role(db, user_id)
+
     membership = (
         db.query(BoardUserPermission)
         .join(Role, Role.id == BoardUserPermission.role_id)
@@ -32,6 +34,12 @@ def check_user_permissions(
     )
 
     if not membership:
+        global_role = find_global_role_with_permission(
+            db, user_id, required_permission
+        )
+        if global_role:
+            return PermissionContext(board=board, role=global_role)
+
         raise HTTPException(status_code=403, detail="Board not shared with you")
 
     role = (
@@ -45,7 +53,13 @@ def check_user_permissions(
         rp.permission.name == required_permission
         for rp in role.permissions
     )
-    if not has_permission:
-        raise HTTPException(status_code=403, detail="You do not have permission to perform this action")
+    if has_permission:
+        return PermissionContext(board=board, role=role)
 
-    return PermissionContext(board=board, role=role)
+    global_role = find_global_role_with_permission(
+        db, user_id, required_permission
+    )
+    if global_role:
+        return PermissionContext(board=board, role=global_role)
+
+    raise HTTPException(status_code=403, detail="You do not have permission to perform this action")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from typing import List
 from uuid import UUID
 
@@ -23,8 +23,14 @@ def create(db: DbSession, board: model.BoardCreate, auth_context: AuthContext = 
     return service.create(db, board, user_id=auth_context.user_id)
 
 @router.put("/{id}", response_model=model.BoardResponse)
-def update_Board(db: DbSession, id: UUID, board: model.BoardUpdate, auth_context: AuthContext = Depends(get_auth_context)):
-    return service.update(db, id, board, user_id=auth_context.user_id)
+def update_Board(
+    db: DbSession,
+    id: UUID,
+    board: model.BoardUpdate,
+    force: bool = Query(False),
+    auth_context: AuthContext = Depends(get_auth_context),
+):
+    return service.update(db, id, board, user_id=auth_context.user_id, force=force)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_Board(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):

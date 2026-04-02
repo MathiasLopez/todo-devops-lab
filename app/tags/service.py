@@ -5,6 +5,7 @@ from uuid import UUID
 
 from ..utils import model_utils
 from ..entities.tag import Tag
+from ..entities.task_tag import task_tags
 from .models import TagCreate, TagUpdate
 from ..boards.access import check_user_permissions
 from ..boards.permissions import PERM_BOARD_VIEW, PERM_TAG_MANAGE
@@ -27,9 +28,21 @@ def update_tag(db: Session, tag_id: UUID, data: TagUpdate, user_id: UUID) -> Tag
     db.refresh(tag)
     return tag
 
-def delete_tag(db: Session, tag_id: UUID, user_id:UUID) -> None:
+def delete_tag(db: Session, tag_id: UUID, user_id: UUID, force: bool = False) -> None:
     tag = get_tag_by_id(db, tag_id, user_id)
     check_user_permissions(db, tag.board_id, user_id, required_permission=PERM_TAG_MANAGE)
+
+    linked = (
+        db.query(task_tags.c.task_id)
+        .filter(task_tags.c.tag_id == tag_id)
+        .count()
+    )
+    if linked and not force:
+        raise HTTPException(
+            status_code=409,
+            detail="Tag is assigned to tasks; set force=true to delete it and remove the associations",
+        )
+
     db.delete(tag)
     db.commit()
 

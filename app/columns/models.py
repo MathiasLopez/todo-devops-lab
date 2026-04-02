@@ -7,6 +7,7 @@ from datetime import datetime
 from ..tasks.models import TaskResponse
 
 class ColumnCreate(BaseModel):
+    id: Optional[UUID] = None
     title: str
     description: Optional[str] = None
 

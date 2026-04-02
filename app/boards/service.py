@@ -9,84 +9,49 @@ from ..entities.board import Board
 from ..entities.boardColumn import BoardColumn
 from ..entities.tag import Tag
 from ..entities.task import Task
+from ..entities.task_tag import task_tags
 from uuid import UUID
 from ..utils import model_utils
-from ..entities.role import Role
+from ..entities.role import Role, RoleScope
+from ..entities.permission import Permission
+from ..entities.rolePermission import RolePermission
 from ..auth.models import AuthContext
-from ..users import service as user_service
-from ..users.models import UserResponse
+from app.auth.access import require_global_permission, find_global_role_with_permission
+from app.auth.permissions import PERM_BOARD_CREATE
 from .permissions import (
     PERM_BOARD_VIEW,
     PERM_BOARD_UPDATE,
     PERM_BOARD_DELETE,
-    PERM_BOARD_MANAGE_MEMBERS
+    PERM_BOARD_MANAGE_MEMBERS,
 )
 from .access import check_user_permissions
 
 def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
-    try:
-        owner_role = _get_role_by_name(db, "owner")
+    require_global_permission(db, user_id, PERM_BOARD_CREATE)
 
-        # Validations happen before mutating the session to avoid partial writes
+    members = board_in.members or []
+    board_roles_map = _get_board_roles_map(db)
+    _validate_board_members(members, board_roles_map)
+
+    try:
         if board_in.columns:
-            seen_columns = set()
-            for column in board_in.columns:
-                title = (column.title or "").strip()
-                if not title:
-                    raise HTTPException(status_code=400, detail="Column title cannot be empty")
-                normalized = title.lower()
-                if normalized in seen_columns:
-                    raise HTTPException(status_code=400, detail=f"Duplicate column title: {title}")
-                seen_columns.add(normalized)
+            _validate_columns(board_in.columns)
 
         if board_in.tags:
-            seen_tags = set()
-            for tag in board_in.tags:
-                title = (tag.title or "").strip()
-                if not title:
-                    raise HTTPException(status_code=400, detail="Tag title cannot be empty")
-                normalized = title.lower()
-                if normalized in seen_tags:
-                    raise HTTPException(status_code=400, detail=f"Duplicate tag title: {title}")
-                seen_tags.add(normalized)
+            _validate_tags(board_in.tags)
 
-        board_data = board_in.model_dump(exclude={"columns", "tags"})
+        board_data = board_in.model_dump(exclude={"columns", "tags", "members"})
         new_board = Board(**board_data, created_by=user_id, modified_by=user_id)
         db.add(new_board)
         db.flush()  # to get new_board.id
 
-        board_user_permission = BoardUserPermission(
-            board_id=new_board.id,
-            user_id=user_id,
-            role_id=owner_role.id,
-            created_by=user_id,
-            modified_by=user_id
-        )
-        db.add(board_user_permission)
+        _assign_board_members(db, new_board.id, members, user_id)
 
         if board_in.columns:
-            for column in board_in.columns:
-                column_description = (column.description or "").strip()
-                if not column_description:
-                    column_description = ""
-                new_column = BoardColumn(
-                    board_id=new_board.id,
-                    title=column.title,
-                    description=column_description,
-                    created_by=user_id,
-                    modified_by=user_id
-                )
-                db.add(new_column)
+            _add_board_columns(db, new_board.id, board_in.columns, user_id)
 
         if board_in.tags:
-            for tag in board_in.tags:
-                new_tag = Tag(
-                    board_id=new_board.id,
-                    title=tag.title,
-                    created_by=user_id,
-                    modified_by=user_id
-                )
-                db.add(new_tag)
+            _add_board_tags(db, new_board.id, board_in.tags, user_id)
 
         db.commit()
         db.refresh(new_board)
@@ -98,14 +63,34 @@ def create(db: Session, board_in: model.BoardCreate, user_id: UUID) -> Board:
         db.rollback()
         raise
 
-def update(db: Session, board_id: UUID, board_in: model.BoardUpdate, user_id: UUID) -> Board:
+def update(db: Session, board_id: UUID, board_in: model.BoardUpdate, user_id: UUID, force: bool = False) -> Board:
     ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_UPDATE)
-    model_utils.update_model_fields(ctx.board, board_in)
-    ctx.board.modified_by = user_id
-    db.commit()
-    db.refresh(ctx.board)
 
-    return ctx.board
+    try:
+        if board_in.columns is not None:
+            _apply_column_patch(db, board_id, board_in.columns, user_id)
+
+        if board_in.tags is not None:
+            _replace_board_tags(db, board_id, board_in.tags, user_id, force=force)
+
+        if board_in.members is not None:
+            board_roles_map = _get_board_roles_map(db)
+            _validate_board_members(board_in.members, board_roles_map)
+            db.query(BoardUserPermission).filter_by(board_id=board_id).delete(synchronize_session=False)
+            _assign_board_members(db, board_id, board_in.members, user_id)
+
+        model_utils.update_model_fields(ctx.board, board_in, exclude={"columns", "tags", "members"})
+        ctx.board.modified_by = user_id
+        db.commit()
+        db.refresh(ctx.board)
+
+        return ctx.board
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+    except Exception:
+        db.rollback()
+        raise
 
 def delete(db: Session, board_id:UUID, user_id:UUID) -> None:
     ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_DELETE)
@@ -115,10 +100,21 @@ def delete(db: Session, board_id:UUID, user_id:UUID) -> None:
     db.commit()
 
 def get_all(db: Session, user_id: UUID):
+    # If the user holds a global role granting board.view, return every board; otherwise keep the member-based query.
+    if find_global_role_with_permission(db, user_id, PERM_BOARD_VIEW):
+        return db.query(Board).all()
+
     query = (
         select(Board)
         .join(BoardUserPermission, Board.id == BoardUserPermission.board_id)
-        .where(BoardUserPermission.user_id == user_id)
+        .join(Role, Role.id == BoardUserPermission.role_id)
+        .join(RolePermission, RolePermission.role_id == Role.id)
+        .join(Permission, Permission.id == RolePermission.permission_id)
+        .where(
+            BoardUserPermission.user_id == user_id,
+            Permission.name == PERM_BOARD_VIEW,
+        )
+        .distinct()
     )
     result = db.execute(query).scalars().all()
     return result
@@ -127,11 +123,193 @@ def get_by_id(db: Session, board_id:UUID, user_id: UUID):
     ctx = check_user_permissions(db, board_id, user_id, required_permission=PERM_BOARD_VIEW)
     return ctx.board
 
-def _get_role_by_name(db: Session, name: str) -> Role:
-    role = db.query(Role).filter_by(name=name).one_or_none()
-    if not role:
-        raise HTTPException(status_code=500, detail=f"Role '{name}' is not configured")
-    return role
+def _get_board_roles_map(db: Session) -> dict[UUID, Role]:
+    roles = (
+        db.query(Role)
+        .filter(Role.scope == RoleScope.BOARD.value)
+        .all()
+    )
+    if not roles:
+        raise HTTPException(status_code=500, detail="Board roles are not configured")
+    return {role.id: role for role in roles}
+
+
+def _validate_board_members(members: list[model.BoardMemberCreate], board_roles_map: dict[UUID, Role]) -> None:
+    if not members:
+        raise HTTPException(status_code=400, detail="Board must have at least one member")
+
+    highest_level = max(role.level for role in board_roles_map.values())
+    highest_role_ids = {role_id for role_id, role in board_roles_map.items() if role.level == highest_level}
+
+    seen_user_ids: set[UUID] = set()
+    has_highest_role = False
+
+    for member in members:
+        if member.user_id in seen_user_ids:
+            raise HTTPException(status_code=400, detail=f"Duplicate member user_id: {member.user_id}")
+        seen_user_ids.add(member.user_id)
+
+        if member.role_id not in board_roles_map:
+            raise HTTPException(status_code=400, detail="Role not configured for board scope")
+
+        if member.role_id in highest_role_ids:
+            has_highest_role = True
+
+    if not has_highest_role:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one member must have the highest-level board role",
+        )
+
+
+def _assign_board_members(
+    db: Session,
+    board_id: UUID,
+    members: list[model.BoardMemberCreate],
+    actor_id: UUID,
+) -> None:
+    for member in members:
+        db.add(
+            BoardUserPermission(
+                board_id=board_id,
+                user_id=member.user_id,
+                role_id=member.role_id,
+                created_by=actor_id,
+                modified_by=actor_id,
+            )
+        )
+
+
+def _validate_columns(columns: list[model.ColumnCreate]) -> None:
+    seen_titles: set[str] = set()
+    for column in columns:
+        title = (column.title or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Column title cannot be empty")
+        normalized = title.lower()
+        if normalized in seen_titles:
+            raise HTTPException(status_code=400, detail=f"Duplicate column title: {title}")
+        seen_titles.add(normalized)
+
+
+def _add_board_columns(db: Session, board_id: UUID, columns: list[model.ColumnCreate], user_id: UUID) -> None:
+    for column in columns:
+        column_description = (column.description or "").strip()
+        if not column_description:
+            column_description = ""
+        new_column = BoardColumn(
+            board_id=board_id,
+            title=column.title,
+            description=column_description,
+            created_by=user_id,
+            modified_by=user_id
+        )
+        db.add(new_column)
+
+
+def _apply_column_patch(
+    db: Session,
+    board_id: UUID,
+    columns: list[model.ColumnCreate],
+    user_id: UUID,
+) -> None:
+    _validate_columns(columns)
+
+    existing_columns = (
+        db.query(BoardColumn)
+        .filter(BoardColumn.board_id == board_id)
+        .all()
+    )
+    existing_by_id = {column.id: column for column in existing_columns}
+    processed_ids: set[UUID] = set()
+
+    for column in columns:
+        if column.id:
+            existing = existing_by_id.get(column.id)
+            if not existing:
+                raise HTTPException(status_code=404, detail=f"Column {column.id} not found")
+            model_utils.update_model_fields(existing, column, exclude={"id"})
+            existing.modified_by = user_id
+            processed_ids.add(column.id)
+        else:
+            _add_board_columns(db, board_id, [column], user_id)
+
+    for column_id, column in existing_by_id.items():
+        if column_id in processed_ids:
+            continue
+        _ensure_column_has_no_tasks(db, column_id)
+        db.delete(column)
+
+
+def _ensure_column_has_no_tasks(db: Session, column_id: UUID) -> None:
+    task_exists = (
+        db.query(Task.id)
+        .filter(Task.column_id == column_id)
+        .first()
+    )
+    if task_exists:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete column while tasks exist; move or delete tasks first",
+        )
+
+
+def _validate_tags(tags: list[model.TagCreate]) -> None:
+    seen: set[str] = set()
+    for tag in tags:
+        title = (tag.title or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Tag title cannot be empty")
+        normalized = title.lower()
+        if normalized in seen:
+            raise HTTPException(status_code=400, detail=f"Duplicate tag title: {title}")
+        seen.add(normalized)
+
+
+def _add_board_tags(db: Session, board_id: UUID, tags: list[model.TagCreate], user_id: UUID) -> None:
+    for tag in tags:
+        new_tag = Tag(
+            board_id=board_id,
+            title=tag.title,
+            created_by=user_id,
+            modified_by=user_id
+        )
+        db.add(new_tag)
+
+
+def _replace_board_tags(db: Session, board_id: UUID, tags: list[model.TagCreate], user_id: UUID, force: bool = False) -> None:
+    _validate_tags(tags)
+
+    incoming_titles = {
+        (tag.title or "").strip().lower()
+        for tag in tags
+    }
+
+    existing_tags = db.query(Tag).filter_by(board_id=board_id).all()
+    for tag in existing_tags:
+        normalized = (tag.title or "").strip().lower()
+        if normalized not in incoming_titles:
+            _ensure_tag_not_in_use(db, tag.id, tag.title, force=force)
+
+    db.query(Tag).filter_by(board_id=board_id).delete(synchronize_session=False)
+    if tags:
+        _add_board_tags(db, board_id, tags, user_id)
+
+
+def _ensure_tag_not_in_use(db: Session, tag_id: UUID, title: str, force: bool = False) -> None:
+    if force:
+        return
+    task_exists = (
+        db.query(task_tags.c.task_id)
+        .filter(task_tags.c.tag_id == tag_id)
+        .first()
+    )
+    if task_exists:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Tag '{title}' is assigned to tasks; remove those associations before deleting it",
+        )
+
 
 def _get_role_by_id(db: Session, role_id: UUID) -> Role:
     role = db.get(Role, role_id)

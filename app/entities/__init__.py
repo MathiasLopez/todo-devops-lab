@@ -9,3 +9,5 @@ from .tag import Tag  # noqa: F401
 from .role import Role  # noqa: F401
 from .permission import Permission  # noqa: F401
 from .rolePermission import RolePermission  # noqa: F401
+from .boardUserPermission import BoardUserPermission  # noqa: F401
+from .userRole import UserRole  # noqa: F401

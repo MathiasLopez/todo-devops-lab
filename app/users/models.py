@@ -11,4 +11,4 @@ class UserResponse(BaseModel):
 
 
 class UserMeResponse(UserResponse):
-    role: Optional[RoleResponse] = None
+    role: RoleResponse

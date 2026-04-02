@@ -13,10 +13,14 @@ class BoardBase(BaseModel):
 class BoardCreate(BoardBase):
     columns: Optional[List[ColumnCreate]] = None
     tags: Optional[List[TagCreate]] = None
+    members: Optional[List["BoardMemberCreate"]] = None
 
 class BoardUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    columns: Optional[List[ColumnCreate]] = None
+    tags: Optional[List[TagCreate]] = None
+    members: Optional[List["BoardMemberCreate"]] = None
 
 class BoardResponse(BoardBase):
     id: UUID

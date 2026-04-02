@@ -8,10 +8,10 @@ class PermissionResponse(BaseModel):
     name: str
     description: Optional[str] = None
 
-
 class RoleResponse(BaseModel):
     id: UUID
     name: str
     description: Optional[str] = None
+    scope: str
     level: int
     permissions: List[PermissionResponse]

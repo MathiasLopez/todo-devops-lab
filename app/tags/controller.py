@@ -1,5 +1,5 @@
 # tags/controller.py
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from uuid import UUID
 from ..auth.models import AuthContext
 from ..database.core.database import DbSession
@@ -17,5 +17,10 @@ def update_tag(db: DbSession, id: UUID, data: models.TagUpdate, auth_context: Au
     return service.update_tag(db, id, data, auth_context.user_id)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(db: DbSession, id: UUID, auth_context: AuthContext = Depends(get_auth_context)):
-    service.delete_tag(db, id, auth_context.user_id)
+def delete_tag(
+    db: DbSession,
+    id: UUID,
+    force: bool = Query(False),
+    auth_context: AuthContext = Depends(get_auth_context),
+):
+    service.delete_tag(db, id, auth_context.user_id, force=force)
