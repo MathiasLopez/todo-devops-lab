@@ -24,7 +24,16 @@ async def test_full_flow(client):
     # Create board
     r = await client.post(
         "/boards/",
-        json={"title": "Test E2E", "description": "Board test created in E2E"}
+        json={
+            "title": "Test E2E",
+            "description": "Board test created in E2E",
+            "members": [
+                {
+                    "user_id": "be3841af-eb3e-4424-b480-2787381a0b3e",
+                    "role_id": "00000000-0000-0000-0000-000000000001",
+                }
+            ],
+        }
     )
     assert r.status_code == 201
     board = r.json()
