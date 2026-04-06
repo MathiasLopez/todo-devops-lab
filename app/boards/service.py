@@ -280,20 +280,34 @@ def _add_board_tags(db: Session, board_id: UUID, tags: list[model.TagCreate], us
 def _replace_board_tags(db: Session, board_id: UUID, tags: list[model.TagCreate], user_id: UUID, force: bool = False) -> None:
     _validate_tags(tags)
 
-    incoming_titles = {
-        (tag.title or "").strip().lower()
+    def _normalize(title: str | None) -> str:
+        return (title or "").strip().lower()
+
+    incoming_by_title = {
+        _normalize(tag.title): tag
         for tag in tags
     }
 
     existing_tags = db.query(Tag).filter_by(board_id=board_id).all()
-    for tag in existing_tags:
-        normalized = (tag.title or "").strip().lower()
-        if normalized not in incoming_titles:
-            _ensure_tag_not_in_use(db, tag.id, tag.title, force=force)
+    existing_by_title = {
+        _normalize(tag.title): tag
+        for tag in existing_tags
+    }
 
-    db.query(Tag).filter_by(board_id=board_id).delete(synchronize_session=False)
-    if tags:
-        _add_board_tags(db, board_id, tags, user_id)
+    for normalized_title, tag in existing_by_title.items():
+        if normalized_title not in incoming_by_title:
+            _ensure_tag_not_in_use(db, tag.id, tag.title, force=force)
+            db.delete(tag)
+
+    for normalized_title, incoming_tag in incoming_by_title.items():
+        existing = existing_by_title.get(normalized_title)
+        if existing:
+            if existing.title != incoming_tag.title:
+                existing.title = incoming_tag.title
+                existing.modified_by = user_id
+            continue
+
+        _add_board_tags(db, board_id, [incoming_tag], user_id)
 
 
 def _ensure_tag_not_in_use(db: Session, tag_id: UUID, title: str, force: bool = False) -> None:
