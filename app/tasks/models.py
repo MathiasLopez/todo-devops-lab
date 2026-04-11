@@ -2,9 +2,15 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from ..priorities.models import PriorityResponse
 from ..tags.models import TagResponse
+
+class SubtaskResponse(BaseModel):
+    id: UUID
+    title: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 class TaskBase(BaseModel):
     title: str
@@ -12,6 +18,7 @@ class TaskBase(BaseModel):
     priority_id: UUID
     assigned: Optional[UUID] = None
     tags: Optional[List[UUID]] = None
+    parent_id: Optional[UUID] = None
 
 class TaskCreate(TaskBase):
     pass
@@ -31,3 +38,14 @@ class TaskResponse(TaskBase):
     column_id: UUID
     priority: PriorityResponse
     tags: List[TagResponse]
+    parent: Optional[SubtaskResponse] = None
+    subtasks: List[SubtaskResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskSearchItem(BaseModel):
+    id: UUID
+    title: str
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

@@ -1,5 +1,5 @@
 # columns/service.py
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload, load_only
 from fastapi import HTTPException
 from uuid import UUID
 from ..entities.boardColumn import BoardColumn
@@ -48,19 +48,48 @@ def get_columns_with_tasks(db, board_id: UUID, user_id: UUID):
     # └── tasks
     #     ├── tags
     #     └── priority
-    columns = (
-        db.query(BoardColumn)
+    columns = db.query(BoardColumn).filter(BoardColumn.board_id == ctx.board.id).all()
+
+    if not columns:
+        return []
+
+    column_ids = [col.id for col in columns]
+
+    tasks = (
+        db.query(Task)
         .options(
-            joinedload(BoardColumn.tasks)
-                .joinedload(Task.priority),
-            joinedload(BoardColumn.tasks)
-                .joinedload(Task.tags)
+            joinedload(Task.priority),
+            joinedload(Task.tags),
+            joinedload(Task.parent).load_only(Task.id, Task.title),
+            selectinload(Task.subtasks).load_only(Task.id, Task.title, Task.parent_id),
         )
-        .filter(BoardColumn.board_id == ctx.board.id)
+        .filter(Task.column_id.in_(column_ids))
         .all()
     )
 
-    return columns
+    tasks_by_column: dict[UUID, list[Task]] = {}
+    for task in tasks:
+        tasks_by_column.setdefault(task.column_id, []).append(task)
+
+    # Build response DTOs; all tasks in the column are listed (roots and subtasks alike).
+    # Parent tasks carry their subtasks eagerly loaded so the client can render relationships.
+    result: list[models.ColumnWithTaskResponse] = []
+    for col in columns:
+        result.append(
+            models.ColumnWithTaskResponse(
+                id=col.id,
+                board_id=col.board_id,
+                title=col.title,
+                description=col.description,
+                created_by=col.created_by,
+                created_at=col.created_at,
+                modified_by=col.modified_by,
+                modified_at=col.modified_at,
+                tasks=[models.TaskResponse.model_validate(task) for task in tasks_by_column.get(col.id, [])],
+            )
+        )
+
+    return result
 
 def get_by_id(db: Session, column_id:UUID, user_id: UUID):
     column = db.get(BoardColumn, column_id)

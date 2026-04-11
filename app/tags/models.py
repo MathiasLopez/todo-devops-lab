@@ -1,5 +1,5 @@
 # tags/models.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
@@ -21,3 +21,4 @@ class TagResponse(TagBase):
     modified_by: UUID
     modified_at: datetime
 
+    model_config = ConfigDict(from_attributes=True)

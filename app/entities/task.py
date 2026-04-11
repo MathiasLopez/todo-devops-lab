@@ -19,8 +19,27 @@ class Task(Base, AuditMixin):
     due_date = Column(DateTime, nullable=True)
     assigned = Column(UUID(as_uuid=True), nullable=True)
 
+    parent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     column_id = Column(UUID(as_uuid=True), ForeignKey("board_columns.id"), nullable=False)
     priority_id = Column(UUID(as_uuid=True), ForeignKey("priorities.id"), nullable=False)
+
+    parent = relationship(
+        "Task",
+        remote_side=[id],
+        back_populates="subtasks",
+        foreign_keys=[parent_id],
+    )
+    subtasks = relationship(
+        "Task",
+        back_populates="parent",
+        passive_deletes=True,
+        foreign_keys=[parent_id],
+    )
 
     column = relationship("BoardColumn", back_populates="tasks")
     priority = relationship("Priority")
