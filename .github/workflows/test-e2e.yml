@@ -15,6 +15,10 @@ env:
   ALLOWED_ORIGIN: "*"
   JWT_SECRET: 123e4567-e89b-12d3-a456-426614174000
   JWT_ALGORITHM: HS256
+  MINIO_ACCESS_KEY: minioadmin
+  MINIO_SECRET_KEY: minioadmin
+  MINIO_BUCKET: task-attachments
+  MAX_UPLOAD_SIZE_MB: 10
 
 jobs:
   tests:
