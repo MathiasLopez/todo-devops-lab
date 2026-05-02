@@ -1,6 +1,6 @@
-services: 
+services:
   api:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     restart: "no"
@@ -8,6 +8,11 @@ services:
       - shared-network
 
   db:
+    restart: "no"
+    networks:
+      - shared-network
+
+  minio:
     restart: "no"
     networks:
       - shared-network

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from .database.core.database import wait_for_db
 from .api import register_routers
+from .attachments.storage import ensure_bucket
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -8,6 +9,7 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     wait_for_db()
+    ensure_bucket()
     yield
 
 app = FastAPI(lifespan=lifespan)

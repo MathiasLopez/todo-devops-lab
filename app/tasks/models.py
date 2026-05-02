@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from ..priorities.models import PriorityResponse
 from ..tags.models import TagResponse
+from ..attachments.models import AttachmentResponse
 
 class SubtaskResponse(BaseModel):
     id: UUID
@@ -40,6 +41,7 @@ class TaskResponse(TaskBase):
     tags: List[TagResponse]
     parent: Optional[SubtaskResponse] = None
     subtasks: List[SubtaskResponse] = []
+    attachments: List[AttachmentResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 

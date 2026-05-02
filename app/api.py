@@ -6,6 +6,7 @@ from app.columns.controller import router as columns_router
 from app.tags.controller import router as tags_router
 from app.priorities.controller import router as priorities_router
 from app.roles.controller import router as roles_router
+from app.attachments.controller import router as attachments_router
 
 def register_routers(app: FastAPI):
     app.include_router(tasks_router)
@@ -15,3 +16,4 @@ def register_routers(app: FastAPI):
     app.include_router(tags_router)
     app.include_router(priorities_router)
     app.include_router(roles_router)
+    app.include_router(attachments_router)

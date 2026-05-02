@@ -44,3 +44,4 @@ class Task(Base, AuditMixin):
     column = relationship("BoardColumn", back_populates="tasks")
     priority = relationship("Priority")
     tags = relationship("Tag", secondary=task_tags, back_populates="tasks")
+    attachments = relationship("Attachment", back_populates="task", cascade="all, delete-orphan")

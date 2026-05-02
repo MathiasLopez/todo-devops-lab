@@ -185,3 +185,108 @@ async def test_subtasks(client):
     # Verify parent no longer has subtasks
     r = await client.get(f"/tasks/{parent['id']}")
     assert r.json()["subtasks"] == []
+
+
+@pytest.mark.asyncio
+async def test_attachments(client):
+    # Setup: board, column, task
+    r = await client.get("/priorities/")
+    high_priority = next(p for p in r.json() if p["title"] == "High")
+
+    r = await client.post(
+        "/boards/",
+        json={
+            "title": "Attachments Board",
+            "members": [{"user_id": "be3841af-eb3e-4424-b480-2787381a0b3e", "role_id": "00000000-0000-0000-0000-000000000001"}],
+        },
+    )
+    board = r.json()
+
+    r = await client.post(f"/boards/{board['id']}/columns", json={"title": "To Do"})
+    column = r.json()
+
+    r = await client.post(
+        f"/columns/{column['id']}/tasks",
+        json={"title": "Task with attachments", "priority_id": high_priority["id"]},
+    )
+    task = r.json()
+
+    # Upload a valid text file
+    file_content = b"Hello, this is a test attachment."
+    r = await client.post(
+        f"/tasks/{task['id']}/attachments",
+        files={"file": ("notes.txt", file_content, "text/plain")},
+    )
+    assert r.status_code == 201
+    attachment = r.json()
+    assert attachment["filename"] == "notes.txt"
+    assert attachment["content_type"] == "text/plain"
+    assert attachment["file_size"] == len(file_content)
+    assert attachment["task_id"] == task["id"]
+
+    # List attachments
+    r = await client.get(f"/tasks/{task['id']}/attachments")
+    assert r.status_code == 200
+    items = r.json()
+    assert len(items) == 1
+    assert items[0]["id"] == attachment["id"]
+
+    # Get presigned download URL
+    r = await client.get(f"/attachments/{attachment['id']}/download")
+    assert r.status_code == 200
+    dl = r.json()
+    assert "url" in dl
+    assert dl["expires_in"] == 900
+
+    # Reject unsupported content type
+    r = await client.post(
+        f"/tasks/{task['id']}/attachments",
+        files={"file": ("malware.exe", b"\x00\x01\x02", "application/x-msdownload")},
+    )
+    assert r.status_code == 400
+
+    # Delete attachment
+    r = await client.delete(f"/attachments/{attachment['id']}")
+    assert r.status_code == 204
+
+    # List is now empty
+    r = await client.get(f"/tasks/{task['id']}/attachments")
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_task_delete_cascades_attachments(client):
+    r = await client.get("/priorities/")
+    high_priority = next(p for p in r.json() if p["title"] == "High")
+
+    r = await client.post(
+        "/boards/",
+        json={
+            "title": "Cascade Board",
+            "members": [{"user_id": "be3841af-eb3e-4424-b480-2787381a0b3e", "role_id": "00000000-0000-0000-0000-000000000001"}],
+        },
+    )
+    board = r.json()
+
+    r = await client.post(f"/boards/{board['id']}/columns", json={"title": "To Do"})
+    column = r.json()
+
+    r = await client.post(
+        f"/columns/{column['id']}/tasks",
+        json={"title": "Task to delete", "priority_id": high_priority["id"]},
+    )
+    task = r.json()
+
+    r = await client.post(
+        f"/tasks/{task['id']}/attachments",
+        files={"file": ("doc.txt", b"cascade me", "text/plain")},
+    )
+    assert r.status_code == 201
+    attachment = r.json()
+
+    r = await client.delete(f"/tasks/{task['id']}")
+    assert r.status_code == 204
+
+    # Attachment record is gone (DB cascade) — download endpoint returns 404
+    r = await client.get(f"/attachments/{attachment['id']}/download")
+    assert r.status_code == 404

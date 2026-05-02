@@ -1,4 +1,6 @@
 # tasks/service.py
+import logging
+
 from fastapi import HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload, selectinload, load_only
@@ -9,6 +11,7 @@ from ..entities.tag import Tag
 from ..entities.priority import Priority
 from . import models
 from ..columns import service as columns_service
+from ..attachments import storage
 from uuid import UUID
 from typing import Optional
 from ..utils import model_utils
@@ -19,6 +22,8 @@ from ..boards.permissions import (
     PERM_TASK_UPDATE,
     PERM_TASK_DELETE,
 )
+
+logger = logging.getLogger(__name__)
 
 def create_task(db: Session, task: models.TaskCreate, user_id: UUID, column_id: UUID) -> Task:
     column = columns_service.get_by_id(db, column_id, user_id)
@@ -186,8 +191,17 @@ def update_task(db: Session, id: UUID, data: models.TaskUpdate, user_id: UUID) -
 def delete_task(db: Session, id: UUID, user_id: UUID) -> None:
     task = get_task_by_id(db, id, user_id)
     check_user_permissions(db, task.column.board_id, user_id, required_permission=PERM_TASK_DELETE)
+
+    minio_keys = [a.minio_key for a in task.attachments]
+
     db.delete(task)
     db.commit()
+
+    for key in minio_keys:
+        try:
+            storage.delete_file(key)
+        except Exception:
+            logger.exception("Orphan MinIO file after task delete: key=%s", key)
 
 
 def search_tasks(
